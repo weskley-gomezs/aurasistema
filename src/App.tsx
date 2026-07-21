@@ -890,7 +890,7 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation Bar (Thumb friendly for fast access!) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 pb-safe pt-2 flex justify-around items-center z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 pb-[env(safe-area-inset-bottom)] pt-2 flex justify-around items-center z-[100] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
