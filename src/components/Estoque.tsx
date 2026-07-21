@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, useRef, useEffect, ChangeEvent } from 'react';
 import { Product, Category } from '../types';
-import { Search, Plus, AlertCircle, Edit, Trash2, ArrowUpRight, Folder, Package, DollarSign, Image as ImageIcon, X, Camera, Upload, BookOpen, Copy, Check, Share2, Sparkles } from 'lucide-react';
+import { Search, Plus, AlertCircle, XCircle, Edit, Trash2, ArrowUpRight, Folder, Package, DollarSign, Image as ImageIcon, X, Camera, Upload, BookOpen, Copy, Check, Share2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateCatalogPDF } from '../utils/pdfGenerator';
 
@@ -21,7 +21,7 @@ const CATEGORY_LABELS: Record<Category, string> = {
 export default function Estoque({ products, onAddProduct, onEditProduct, onDeleteProduct }: EstoqueProps) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'todos'>('todos');
-  const [stockStatusFilter, setStockStatusFilter] = useState<'todos' | 'baixo'>('todos');
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'baixo' | 'disponivel' | 'esgotado'>('todos');
   
   // Catalog Modal state
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -286,10 +286,20 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
                           p.brand.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === 'todos' || p.category === selectedCategory;
-    const matchesStock = stockStatusFilter === 'todos' || p.quantity <= p.minQuantity;
+    
+    let matchesStatus = true;
+    if (statusFilter === 'baixo') matchesStatus = p.quantity <= p.minQuantity;
+    else if (statusFilter === 'disponivel') matchesStatus = p.quantity > 0;
+    else if (statusFilter === 'esgotado') matchesStatus = p.quantity === 0;
 
-    return matchesSearch && matchesCategory && matchesStock;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setSelectedCategory('todos');
+    setStatusFilter('todos');
+  };
 
   return (
     <div id="estoque-section" className="space-y-6">
@@ -365,30 +375,52 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
         </div>
 
         {/* Filtros rápidos adicionais */}
-        <div className="flex items-center gap-4 border-t border-gray-50 pt-3">
-          <span className="text-xs font-medium text-gray-500">Filtrar por Status:</span>
-          <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 border-t border-gray-50 pt-3">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+            <span className="text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-wider shrink-0">Filtrar:</span>
+            
             <button
-              onClick={() => setStockStatusFilter('todos')}
-              id="btn-stock-filter-all"
-              className={`px-3 py-1 text-xs rounded-lg font-medium border ${
-                stockStatusFilter === 'todos'
+              onClick={() => setStatusFilter('todos')}
+              className={`px-3 py-1.5 text-[10px] md:text-xs rounded-lg font-bold border transition-all whitespace-nowrap ${
+                statusFilter === 'todos'
                   ? 'bg-gray-100 text-gray-900 border-gray-200'
                   : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
               }`}
             >
-              Todos os itens
+              Todos
             </button>
+
             <button
-              onClick={() => setStockStatusFilter('baixo')}
-              id="btn-stock-filter-low"
-              className={`px-3 py-1 text-xs rounded-lg font-medium border flex items-center gap-1.5 ${
-                stockStatusFilter === 'baixo'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200 font-semibold'
+              onClick={() => setStatusFilter('disponivel')}
+              className={`px-3 py-1.5 text-[10px] md:text-xs rounded-lg font-bold border flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                statusFilter === 'disponivel'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm'
                   : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
               }`}
             >
-              Estoque Baixo ({products.filter(p => p.quantity <= p.minQuantity).length})
+              <Check className="w-3 h-3" /> Em Estoque ({products.filter(p => p.quantity > 0).length})
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('baixo')}
+              className={`px-3 py-1.5 text-[10px] md:text-xs rounded-lg font-bold border flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                statusFilter === 'baixo'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
+              }`}
+            >
+              <AlertCircle className="w-3 h-3" /> Baixo ({products.filter(p => p.quantity <= p.minQuantity && p.quantity > 0).length})
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('esgotado')}
+              className={`px-3 py-1.5 text-[10px] md:text-xs rounded-lg font-bold border flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                statusFilter === 'esgotado'
+                  ? 'bg-red-50 text-red-700 border-red-200 shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
+              }`}
+            >
+              <X className="w-3 h-3" /> Esgotados ({products.filter(p => p.quantity === 0).length})
             </button>
           </div>
         </div>
@@ -397,7 +429,8 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
       {/* Grid de Produtos */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {filteredProducts.map(product => {
-          const isLowStock = product.quantity <= product.minQuantity;
+          const isSoldOut = product.quantity === 0;
+          const isLowStock = !isSoldOut && product.quantity <= product.minQuantity;
           const profit = product.sellPrice - product.costPrice;
           const marginPercent = ((profit / product.sellPrice) * 100).toFixed(0);
 
@@ -406,7 +439,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
               layout
               key={product.id}
               className={`bg-white rounded-2xl border transition-all overflow-hidden flex flex-col justify-between ${
-                isLowStock ? 'border-amber-200 ring-2 ring-amber-100/50' : 'border-gray-100 hover:border-gold-200'
+                isSoldOut ? 'border-red-500 ring-2 ring-red-100' : isLowStock ? 'border-amber-200 ring-2 ring-amber-100/50' : 'border-gray-100 hover:border-gold-200'
               }`}
             >
               <div>
@@ -431,8 +464,12 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                     {CATEGORY_LABELS[product.category]}
                   </span>
 
-                  {/* Alerta de estoque baixo */}
-                  {isLowStock && (
+                  {/* Alerta de estoque baixo ou esgotado */}
+                  {isSoldOut ? (
+                    <span className="absolute top-3 right-3 bg-red-600 text-white px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-xs flex items-center gap-1 animate-pulse">
+                      <XCircle className="w-3.5 h-3.5" /> Esgotado
+                    </span>
+                  ) : isLowStock && (
                     <span className="absolute top-3 right-3 bg-amber-500 text-white px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-xs flex items-center gap-1">
                       <AlertCircle className="w-3.5 h-3.5" /> Baixo Estoque
                     </span>
@@ -462,7 +499,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                   <div className="flex justify-between items-center text-xs pt-1">
                     <div className="text-gray-500 flex items-center gap-1">
                       <Package className="w-4 h-4 text-gold-500" />
-                      <span>Em estoque: <b>{product.quantity} un</b></span>
+                      <span>Em estoque: <b className={isSoldOut ? 'text-red-600' : ''}>{product.quantity} un</b></span>
                     </div>
                     <div className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md font-bold flex items-center gap-0.5">
                       <ArrowUpRight className="w-3.5 h-3.5" />
@@ -502,7 +539,13 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
           <div className="col-span-full bg-white rounded-2xl border border-gray-100 p-12 text-center">
             <Folder className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 font-medium">Nenhum produto encontrado.</p>
-            <p className="text-gray-400 text-xs mt-1">Experimente ajustar o termo de busca ou limpar os filtros.</p>
+            <p className="text-gray-400 text-xs mt-1 mb-6">Experimente ajustar o termo de busca ou limpar os filtros.</p>
+            <button
+              onClick={handleClearFilters}
+              className="px-6 py-2 bg-gold-500 text-white rounded-xl font-bold text-sm shadow-md shadow-gold-500/20 hover:bg-gold-600 transition-all cursor-pointer"
+            >
+              Limpar Todos os Filtros
+            </button>
           </div>
         )}
       </div>
@@ -901,7 +944,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Seu WhatsApp de Atendimento:</label>
                     <input
-                      type="text"
+                      type="password"
                       value={ownerWhatsApp}
                       onChange={handlePhoneChange}
                       placeholder="Ex: 11987654321 (apenas números)"

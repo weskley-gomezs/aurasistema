@@ -492,17 +492,38 @@ export default function App() {
 
   // Navigation Items
   const [showOverdueModal, setShowOverdueModal] = useState(false);
-  const [overdueSummary, setOverdueSummary] = useState({ count: 0, total: 0 });
+  const [overdueSummary, setOverdueSummary] = useState({ 
+    todayCount: 0, 
+    todayTotal: 0,
+    totalPendingCount: 0,
+    totalPendingAmount: 0,
+    overdueCount: 0,
+    overdueAmount: 0
+  });
 
   useEffect(() => {
     if (!isLoading && sales.length > 0) {
       const today = new Date().toISOString().split('T')[0];
-      const dueToday = sales.filter(s => s.status === 'pendente' && s.dueDate === today);
       
-      if (dueToday.length > 0) {
-        const total = dueToday.reduce((sum, s) => sum + s.totalAmount, 0);
-        setOverdueSummary({ count: dueToday.length, total });
-        
+      const pendingSales = sales.filter(s => s.status === 'pendente');
+      const dueToday = pendingSales.filter(s => s.dueDate === today);
+      const overdueSales = pendingSales.filter(s => s.dueDate && s.dueDate < today);
+      
+      const todayTotal = dueToday.reduce((sum, s) => sum + s.totalAmount, 0);
+      const totalPendingAmount = pendingSales.reduce((sum, s) => sum + s.totalAmount, 0);
+      const overdueAmount = overdueSales.reduce((sum, s) => sum + s.totalAmount, 0);
+
+      setOverdueSummary({
+        todayCount: dueToday.length,
+        todayTotal,
+        totalPendingCount: pendingSales.length,
+        totalPendingAmount,
+        overdueCount: overdueSales.length,
+        overdueAmount
+      });
+      
+      // Only show popup automatically if there are things due today OR overdue
+      if (dueToday.length > 0 || overdueSales.length > 0) {
         const sessionKey = `notified_overdue_${today}`;
         if (!sessionStorage.getItem(sessionKey)) {
           setShowOverdueModal(true);
@@ -510,7 +531,7 @@ export default function App() {
         }
       }
     }
-  }, [isLoading, sales.length]);
+  }, [isLoading, sales]);
 
   const navItems = [
     { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
@@ -638,25 +659,63 @@ export default function App() {
                 <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30">
                   <Clock className="w-10 h-10 text-white animate-pulse" />
                 </div>
-                <h2 className="text-2xl font-serif font-bold text-white mb-2 italic">Lembrete de Cobrança</h2>
-                <p className="text-white/80 text-sm">Existem pagamentos previstos para hoje!</p>
+                <h2 className="text-2xl font-serif font-bold text-white mb-2 italic">Resumo Financeiro</h2>
+                <p className="text-white/80 text-sm">Existem pendências que precisam de sua atenção!</p>
               </div>
               
-              <div className="p-8 space-y-6">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="p-6 space-y-4">
+                {overdueSummary.overdueCount > 0 && (
+                  <div className="flex items-center justify-between p-4 bg-red-50 rounded-2xl border border-red-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-red-400">Vencidos</p>
+                        <p className="text-lg font-bold text-red-700">{overdueSummary.overdueCount}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-red-400">Total Vencido</p>
+                      <p className="text-xl font-black text-red-600">
+                        R$ {overdueSummary.overdueAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between p-4 bg-gold-50/50 rounded-2xl border border-gold-100/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                      <Users className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center text-gold-600">
+                      <Clock className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">Clientes</p>
-                      <p className="text-lg font-bold text-gray-900">{overdueSummary.count}</p>
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-gold-400">Vence Hoje</p>
+                      <p className="text-lg font-bold text-gold-700">{overdueSummary.todayCount}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">Total a Receber</p>
-                    <p className="text-xl font-black text-red-600">
-                      R$ {overdueSummary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-gold-400">Total Hoje</p>
+                    <p className="text-xl font-black text-gold-600">
+                      R$ {overdueSummary.todayTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">Total Pendente</p>
+                      <p className="text-lg font-bold text-gray-900">{overdueSummary.totalPendingCount}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">Valor Geral</p>
+                    <p className="text-xl font-black text-gray-900">
+                      R$ {overdueSummary.totalPendingAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>

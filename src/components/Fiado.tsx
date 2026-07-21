@@ -66,7 +66,7 @@ export default function Fiado({ sales, customers, onMarkAsPaid, onEditSale, onDe
   };
 
   // Filter out pending/debt sales
-  const pendingSales = sales.filter(s => s.status === 'pendente' && s.paymentMethod === 'Fiado');
+  const pendingSales = sales.filter(s => s.status === 'pendente');
 
   // Calculate general total open amount
   const totalOpenAmount = pendingSales.reduce((sum, s) => sum + s.totalAmount, 0);
@@ -238,7 +238,7 @@ export default function Fiado({ sales, customers, onMarkAsPaid, onEditSale, onDe
                   <div>
                     <h3 className="font-serif text-base font-bold text-gray-900">{item.customerName}</h3>
                     {item.whatsapp ? (
-                      <p className="text-[10px] font-mono text-gray-400">WhatsApp: {item.whatsapp}</p>
+                      <p className="text-[10px] font-mono text-gray-400">WhatsApp: {item.whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) *****-$3")}</p>
                     ) : (
                       <p className="text-[10px] text-amber-600 flex items-center gap-1 font-semibold">
                         <HelpCircle className="w-3.5 h-3.5" /> Sem WhatsApp cadastrado

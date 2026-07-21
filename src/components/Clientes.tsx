@@ -260,7 +260,7 @@ export default function Clientes({ customers, sales, onAddCustomer, onEditCustom
                     </div>
                     <div>
                       <h3 className="font-serif text-base font-bold text-gray-900">{customer.name}</h3>
-                      <p className="text-[10px] font-mono text-gray-400">WhatsApp: {customer.whatsapp}</p>
+                      <p className="text-[10px] font-mono text-gray-400">WhatsApp: {customer.whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) *****-$3")}</p>
                     </div>
                   </div>
                   {needsReactivation && (
@@ -505,7 +505,7 @@ export default function Clientes({ customers, sales, onAddCustomer, onEditCustom
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-700 uppercase">WhatsApp (Apenas números) *</label>
                   <input
-                    type="tel"
+                    type="password"
                     required
                     placeholder="Ex: 11999998888"
                     value={whatsapp}

@@ -270,7 +270,7 @@ export async function generateCustomerStatementPDF(
   doc.setFontSize(8.5);
   doc.setTextColor(COLOR_DARK[0], COLOR_DARK[1], COLOR_DARK[2]);
   doc.text(`Nome: ${customer.name}`, 18, 54);
-  doc.text(`WhatsApp: ${customer.whatsapp}`, 18, 59);
+  doc.text(`WhatsApp: ${customer.whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) *****-$3")}`, 18, 59);
   
   // Custom wrap for customer notes
   const notesText = customer.notes ? `Obs: ${customer.notes}` : 'Sem observações cadastradas';
