@@ -1,0 +1,10 @@
+{
+  "name": "Aura Dourada Sistema",
+  "description": "Sistema de gerenciamento para revenda de perfumes e cosméticos com controle de estoque, vendas, clientes, fiados e sincronização",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
