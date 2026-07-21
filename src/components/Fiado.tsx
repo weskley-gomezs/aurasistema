@@ -155,28 +155,28 @@ export default function Fiado({ sales, customers, onMarkAsPaid, onEditSale, onDe
   return (
     <div id="fiado-section" className="space-y-6">
       {/* Header com indicador de total */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-red-50 to-rose-gold-50 p-6 rounded-2xl border border-red-100/50">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-red-50 to-rose-gold-50 p-4 md:p-6 rounded-2xl border border-red-100/50">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-gray-900">Fiado / Pendências de Pagamento</h2>
-          <p className="text-xs text-gray-500 mt-1">Monitore quem está com pendências em aberto e gerencie mensagens de cobrança.</p>
+          <h2 className="font-serif text-xl md:text-2xl font-bold text-gray-900">Fiado / Pendências</h2>
+          <p className="text-[10px] md:text-xs text-gray-500 mt-1">Gerencie mensagens de cobrança e pendências.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {overdueCount > 0 && (
-            <div className="bg-red-600 px-4 py-3 rounded-xl shadow-lg shadow-red-500/20 flex flex-col items-end animate-pulse">
-              <span className="text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> Vencidos ({overdueCount})
+            <div className="flex-1 md:flex-none bg-red-600 px-3 md:px-4 py-2 md:py-3 rounded-xl shadow-lg shadow-red-500/20 flex flex-col items-end animate-pulse">
+              <span className="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1">
+                <Clock className="w-3 md:w-3.5 h-3 md:h-3.5" /> Vencidos
               </span>
-              <span className="text-xl font-black text-white mt-0.5">
-                R$ {overdueAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-sm md:text-xl font-black text-white mt-0.5">
+                R$ {overdueAmount.toFixed(0)}
               </span>
             </div>
           )}
-          <div className="bg-white px-5 py-3 rounded-xl border border-red-200/50 shadow-xs flex flex-col items-end">
-            <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" /> Total a Receber
+          <div className="flex-1 md:flex-none bg-white px-3 md:px-5 py-2 md:py-3 rounded-xl border border-red-200/50 shadow-xs flex flex-col items-end">
+            <span className="text-[8px] md:text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
+              <AlertCircle className="w-3 md:w-3.5 h-3 md:h-3.5" /> A Receber
             </span>
-            <span className="text-2xl font-black text-red-600 mt-0.5">
-              R$ {totalOpenAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <span className="text-sm md:text-2xl font-black text-red-600 mt-0.5">
+              R$ {totalOpenAmount.toFixed(0)}
             </span>
           </div>
         </div>

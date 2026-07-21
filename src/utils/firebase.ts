@@ -71,6 +71,21 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+/**
+ * Removes undefined values from an object as Firestore doesn't support them.
+ */
+function cleanData(data: any) {
+  const cleaned = { ...data };
+  Object.keys(cleaned).forEach(key => {
+    if (cleaned[key] === undefined) {
+      delete cleaned[key];
+    } else if (cleaned[key] !== null && typeof cleaned[key] === 'object' && !Array.isArray(cleaned[key])) {
+      cleaned[key] = cleanData(cleaned[key]);
+    }
+  });
+  return cleaned;
+}
+
 // MANDATORY: Test connection on boot
 if (isFirebaseConfigured && db) {
   const testConnection = async () => {
@@ -141,7 +156,7 @@ export async function saveProductToFirestore(product: Product): Promise<void> {
   const path = `products/${product.id}`;
   const docRef = doc(db, 'products', product.id);
   try {
-    await setDoc(docRef, product);
+    await setDoc(docRef, cleanData(product));
     console.log('[Firebase Debug] setDoc sucesso para produto:', product.id);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
@@ -161,7 +176,7 @@ export async function saveCustomerToFirestore(customer: Customer): Promise<void>
   const path = `customers/${customer.id}`;
   try {
     const docRef = doc(db, 'customers', customer.id);
-    await setDoc(docRef, customer);
+    await setDoc(docRef, cleanData(customer));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -180,7 +195,7 @@ export async function saveSaleToFirestore(sale: Sale): Promise<void> {
   const path = `sales/${sale.id}`;
   try {
     const docRef = doc(db, 'sales', sale.id);
-    await setDoc(docRef, sale);
+    await setDoc(docRef, cleanData(sale));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -254,7 +269,7 @@ export async function seedInitialDataIfNeeded(
         const batch = writeBatch(db);
         filteredSeed.forEach((p: any) => {
           const docRef = doc(db, 'products', p.id);
-          batch.set(docRef, p);
+          batch.set(docRef, cleanData(p));
         });
         await batch.commit();
       }
@@ -286,7 +301,7 @@ export async function seedInitialDataIfNeeded(
         const batch = writeBatch(db);
         filteredSeed.forEach((c: any) => {
           const docRef = doc(db, 'customers', c.id);
-          batch.set(docRef, c);
+          batch.set(docRef, cleanData(c));
         });
         await batch.commit();
       }
@@ -318,7 +333,7 @@ export async function seedInitialDataIfNeeded(
         const batch = writeBatch(db);
         filteredSeed.forEach((s: any) => {
           const docRef = doc(db, 'sales', s.id);
-          batch.set(docRef, s);
+          batch.set(docRef, cleanData(s));
         });
         await batch.commit();
       }
@@ -462,15 +477,15 @@ export async function migrateLocalDataToFirestore(): Promise<boolean> {
       const batch = writeBatch(db);
       
       products.forEach((p: Product) => {
-        batch.set(doc(db, 'products', p.id), p);
+        batch.set(doc(db, 'products', p.id), cleanData(p));
       });
       
       customers.forEach((c: Customer) => {
-        batch.set(doc(db, 'customers', c.id), c);
+        batch.set(doc(db, 'customers', c.id), cleanData(c));
       });
       
       sales.forEach((s: Sale) => {
-        batch.set(doc(db, 'sales', s.id), s);
+        batch.set(doc(db, 'sales', s.id), cleanData(s));
       });
 
       await batch.commit();
@@ -504,9 +519,9 @@ export async function resetFirestoreWithData(
     await deleteBatch.commit();
 
     const seedBatch = writeBatch(db);
-    initialProducts.forEach((p) => seedBatch.set(doc(db, 'products', p.id), p));
-    initialCustomers.forEach((c) => seedBatch.set(doc(db, 'customers', c.id), c));
-    initialSales.forEach((s) => seedBatch.set(doc(db, 'sales', s.id), s));
+    initialProducts.forEach((p) => seedBatch.set(doc(db, 'products', p.id), cleanData(p)));
+    initialCustomers.forEach((c) => seedBatch.set(doc(db, 'customers', c.id), cleanData(c)));
+    initialSales.forEach((s) => seedBatch.set(doc(db, 'sales', s.id), cleanData(s)));
     await seedBatch.commit();
   } catch (error) {
     console.error('Erro ao resetar dados do Firestore:', error);
@@ -549,7 +564,7 @@ export async function syncStateToFirestore(
       const chunk = allItems.slice(i, i + chunkSize);
       const batch = writeBatch(db);
       chunk.forEach((item) => {
-        batch.set(item.ref, item.data);
+        batch.set(item.ref, cleanData(item.data));
       });
       await batch.commit();
     }

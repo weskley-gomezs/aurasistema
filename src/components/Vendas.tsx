@@ -194,12 +194,12 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
             id="btn-export-csv"
             className="flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-800 font-semibold px-4 py-2.5 rounded-xl transition-all border border-gray-200 text-sm cursor-pointer"
           >
-            <FileSpreadsheet className="w-4 h-4 text-gold-500" /> Exportar CSV
+            <FileSpreadsheet className="w-4 h-4 text-gold-500" /> <span className="hidden sm:inline">Exportar CSV</span>
           </button>
           <button
             onClick={() => setIsNewSaleOpen(true)}
             id="btn-new-sale-modal"
-            className="flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-gold-500/10 text-sm cursor-pointer"
+            className="hidden md:flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-gold-500/10 text-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Registrar Venda
           </button>
@@ -207,21 +207,21 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
       </div>
 
       {/* Cards de Métricas Periódicas Rápidas */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-[32px] border border-gray-200 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-tighter">Hoje</span>
-          <span className="text-base md:text-lg font-extrabold text-gray-900 block mt-0.5">R$ {periodMetrics.today.total.toFixed(2)}</span>
-          <span className="text-[10px] text-gold-500 font-medium">Lucro: R$ {periodMetrics.today.profit.toFixed(0)}</span>
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        <div className="bg-white p-3 md:p-5 rounded-2xl md:rounded-[32px] border border-gray-200 shadow-sm">
+          <span className="text-[8px] md:text-[10px] font-bold text-gray-400 block uppercase tracking-tighter">Hoje</span>
+          <span className="text-xs md:text-lg font-extrabold text-gray-900 block mt-0.5">R$ {periodMetrics.today.total.toFixed(0)}</span>
+          <span className="hidden sm:block text-[10px] text-gold-500 font-medium">Lucro: R$ {periodMetrics.today.profit.toFixed(0)}</span>
         </div>
-        <div className="bg-white p-5 rounded-[32px] border border-gray-200 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-tighter">Esta Semana</span>
-          <span className="text-base md:text-lg font-extrabold text-gray-900 block mt-0.5">R$ {periodMetrics.week.total.toFixed(2)}</span>
-          <span className="text-[10px] text-gold-500 font-medium">Lucro: R$ {periodMetrics.week.profit.toFixed(0)}</span>
+        <div className="bg-white p-3 md:p-5 rounded-2xl md:rounded-[32px] border border-gray-200 shadow-sm">
+          <span className="text-[8px] md:text-[10px] font-bold text-gray-400 block uppercase tracking-tighter">Semana</span>
+          <span className="text-xs md:text-lg font-extrabold text-gray-900 block mt-0.5">R$ {periodMetrics.week.total.toFixed(0)}</span>
+          <span className="hidden sm:block text-[10px] text-gold-500 font-medium">Lucro: R$ {periodMetrics.week.profit.toFixed(0)}</span>
         </div>
-        <div className="bg-gold-100 p-5 rounded-[32px] border border-gray-200 shadow-sm">
-          <span className="text-[10px] font-bold text-gold-500 block uppercase tracking-tighter">Este Mês</span>
-          <span className="text-base md:text-lg font-extrabold text-gray-900 block mt-0.5">R$ {periodMetrics.month.total.toFixed(2)}</span>
-          <span className="text-[10px] text-gold-500 font-bold block mt-0.5">Lucro: R$ {periodMetrics.month.profit.toFixed(0)}</span>
+        <div className="bg-gold-100 p-3 md:p-5 rounded-2xl md:rounded-[32px] border border-gray-200 shadow-sm">
+          <span className="text-[8px] md:text-[10px] font-bold text-gold-500 block uppercase tracking-tighter">Mês</span>
+          <span className="text-xs md:text-lg font-extrabold text-gray-900 block mt-0.5">R$ {periodMetrics.month.total.toFixed(0)}</span>
+          <span className="hidden sm:block text-[10px] text-gold-500 font-bold block mt-0.5">Lucro: R$ {periodMetrics.month.profit.toFixed(0)}</span>
         </div>
       </div>
 
@@ -241,24 +241,24 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
         </div>
 
         {/* Filtro por Forma de Pagamento */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
           <button
             onClick={() => setPaymentFilter('todos')}
             id="filter-payment-all"
-            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all border ${
+            className={`px-3.5 py-2 text-[10px] md:text-xs font-semibold rounded-lg transition-all border whitespace-nowrap ${
               paymentFilter === 'todos'
                 ? 'bg-gold-500 text-white border-gold-500'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >
-            Todos Pagamentos
+            Todos
           </button>
           {(['Pix', 'Dinheiro', 'Cartão', 'Fiado'] as PaymentMethod[]).map(method => (
             <button
               key={method}
               id={`filter-payment-${method}`}
               onClick={() => setPaymentFilter(method)}
-              className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all border ${
+              className={`px-3.5 py-2 text-[10px] md:text-xs font-semibold rounded-lg transition-all border whitespace-nowrap ${
                 paymentFilter === method
                   ? 'bg-gold-500 text-white border-gold-500'
                   : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -271,8 +271,9 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
       </div>
 
       {/* Histórico / Lista de Vendas */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white md:rounded-2xl md:border md:border-gray-100 md:shadow-xs overflow-hidden">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gold-50/50 border-b border-gold-100/40 text-[11px] font-bold text-gold-800 uppercase tracking-wider">
@@ -348,18 +349,74 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
                   </td>
                 </tr>
               ))}
-
-              {filteredSales.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="p-12 text-center text-gray-400">
-                    Nenhuma venda registrada que corresponda aos filtros.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card List */}
+        <div className="md:hidden space-y-3">
+          {filteredSales.map((sale) => (
+            <div key={sale.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+              <div className="flex justify-between items-start">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-mono text-gray-400">
+                    {new Date(sale.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                  </span>
+                  <h4 className="text-sm font-bold text-gray-900">{sale.customerName}</h4>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-sm font-black text-gray-900">R$ {sale.totalAmount.toFixed(2)}</span>
+                  {sale.status === 'pago' ? (
+                    <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-bold">Pago</span>
+                  ) : (
+                    <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-[9px] font-bold">Pendente</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100/50 space-y-1">
+                {sale.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between text-[11px]">
+                    <span className="text-gray-600 truncate mr-2">{item.productName}</span>
+                    <span className="text-gray-400 font-bold shrink-0">{item.quantity}x</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center pt-2">
+                <div className="flex gap-2">
+                  <span className="text-[10px] bg-gold-50 text-gold-700 px-2 py-0.5 rounded-md font-bold">
+                    {sale.paymentMethod}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-bold">
+                    Lucro: R$ {sale.profitAmount.toFixed(2)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSaleToDelete({ id: sale.id })}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredSales.length === 0 && (
+          <div className="p-12 text-center text-gray-400 text-sm">
+            Nenhuma venda registrada que corresponda aos filtros.
+          </div>
+        )}
       </div>
+
+      {/* Floating Action Button (Mobile) */}
+      <button
+        onClick={() => setIsNewSaleOpen(true)}
+        className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-gold-500 text-white rounded-full shadow-lg shadow-gold-500/40 flex items-center justify-center z-40 active:scale-95 transition-transform"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       {/* Modal - Registrar Nova Venda */}
       <AnimatePresence>
@@ -384,7 +441,7 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
               </div>
 
               {/* Modal Body */}
-              <form onSubmit={handleSubmitSale} className="p-6 space-y-4">
+              <form onSubmit={handleSubmitSale} className="p-4 md:p-6 space-y-4">
                 {/* Seleção do Cliente e Data */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">

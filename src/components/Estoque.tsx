@@ -294,23 +294,23 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
   return (
     <div id="estoque-section" className="space-y-6">
       {/* Header com botões de ação */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-2xl font-bold text-gray-900">Estoque de Produtos</h2>
           <p className="text-xs text-gray-500">Cadastre e gerencie a quantidade e os preços de seus produtos.</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-nowrap overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
           <button
             onClick={() => setIsCatalogOpen(true)}
             id="btn-open-catalog"
-            className="flex items-center gap-2 bg-white hover:bg-gold-50 text-gold-600 border border-gold-200 font-semibold px-4 py-2.5 rounded-xl transition-all shadow-xs text-sm cursor-pointer"
+            className="flex items-center gap-2 bg-white hover:bg-gold-50 text-gold-600 border border-gold-200 font-semibold px-4 py-2.5 rounded-xl transition-all shadow-xs text-xs md:text-sm cursor-pointer whitespace-nowrap"
           >
-            <BookOpen className="w-4 h-4" /> Ver / Compartilhar Catálogo
+            <BookOpen className="w-4 h-4" /> Catálogo
           </button>
           <button
             onClick={handleOpenAdd}
             id="btn-add-product"
-            className="flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-gold-500/10 text-sm cursor-pointer"
+            className="hidden md:flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-gold-500/10 text-sm cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" /> Novo Produto
           </button>
@@ -333,11 +333,11 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
         </div>
 
         {/* Abas de Categorias */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
           <button
             onClick={() => setSelectedCategory('todos')}
             id="tab-category-all"
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all border ${
+            className={`px-3.5 py-1.5 text-[10px] md:text-xs font-semibold rounded-lg transition-all border whitespace-nowrap ${
               selectedCategory === 'todos'
                 ? 'bg-gold-500 text-white border-gold-500 shadow-xs'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -352,7 +352,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                 key={cat}
                 id={`tab-category-${cat}`}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all border ${
+                className={`px-3.5 py-1.5 text-[10px] md:text-xs font-semibold rounded-lg transition-all border whitespace-nowrap ${
                   selectedCategory === cat
                     ? 'bg-gold-500 text-white border-gold-500 shadow-xs'
                     : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -395,7 +395,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
       </div>
 
       {/* Grid de Produtos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {filteredProducts.map(product => {
           const isLowStock = product.quantity <= product.minQuantity;
           const profit = product.sellPrice - product.costPrice;
@@ -506,6 +506,14 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
           </div>
         )}
       </div>
+
+      {/* Floating Action Button (Mobile) */}
+      <button
+        onClick={handleOpenAdd}
+        className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-gold-500 text-white rounded-full shadow-lg shadow-gold-500/40 flex items-center justify-center z-40 active:scale-95 transition-transform"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       {/* Modal Form de Produto (Add/Edit) */}
       <AnimatePresence>

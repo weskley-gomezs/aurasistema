@@ -185,7 +185,7 @@ export default function Clientes({ customers, sales, onAddCustomer, onEditCustom
         <button
           onClick={handleOpenAdd}
           id="btn-add-customer"
-          className="flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-gold-500/10 text-sm cursor-pointer"
+          className="hidden md:flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-gold-500/10 text-sm cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Novo Cliente
         </button>
@@ -346,6 +346,14 @@ export default function Clientes({ customers, sales, onAddCustomer, onEditCustom
           </div>
         )}
       </div>
+
+      {/* Floating Action Button (Mobile) */}
+      <button
+        onClick={handleOpenAdd}
+        className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-gold-500 text-white rounded-full shadow-lg shadow-gold-500/40 flex items-center justify-center z-40 active:scale-95 transition-transform"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       {/* Drawer / Modal Histórico de Compras Detalhado */}
       <AnimatePresence>

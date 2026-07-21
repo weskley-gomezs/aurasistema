@@ -831,7 +831,7 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation Bar (Thumb friendly for fast access!) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-2 py-1.5 flex justify-around items-center z-40 shadow-lg">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 pb-safe pt-2 flex justify-around items-center z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -840,22 +840,22 @@ export default function App() {
               key={item.id}
               id={`mobile-nav-${item.id}`}
               onClick={() => setActiveTab(item.id)}
-              className="flex flex-col items-center justify-center p-1.5 rounded-lg relative cursor-pointer"
+              className="flex flex-col items-center justify-center p-1 rounded-lg relative cursor-pointer flex-1"
             >
-              <div className={`p-2 rounded-xl transition-all ${
+              <div className={`p-2.5 rounded-xl transition-all duration-300 ${
                 isActive 
-                  ? 'bg-gold-500 text-white shadow-xs' 
-                  : 'text-gray-600'
+                  ? 'bg-gold-500 text-white shadow-lg shadow-gold-500/20 scale-110 -translate-y-1' 
+                  : 'text-gray-400'
               }`}>
                 <Icon className="w-5 h-5" />
               </div>
-              <span className={`text-[9px] mt-1 font-semibold ${isActive ? 'text-gold-500 font-bold' : 'text-gray-500'}`}>
+              <span className={`text-[8px] mt-1 font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-gold-600' : 'text-gray-400'}`}>
                 {item.id === 'fiado' ? 'Fiado' : item.label}
               </span>
 
               {/* Outstanding notifications badge */}
               {item.badge !== undefined && item.badge > 0 && (
-                <span className={`absolute top-1.5 right-1.5 font-extrabold text-[8px] h-4 min-w-4 px-1 rounded-full flex items-center justify-center shadow-xs border border-white ${
+                <span className={`absolute top-0 right-1/4 translate-x-1/2 font-extrabold text-[8px] h-4 min-w-4 px-1 rounded-full flex items-center justify-center shadow-xs border border-white ${
                   item.id === 'fiado' && (item as any).hasOverdue ? 'bg-red-600 text-white animate-pulse' : 'bg-red-500 text-white'
                 }`}>
                   {item.badge}

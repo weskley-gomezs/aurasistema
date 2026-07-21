@@ -162,17 +162,23 @@ export default function Dashboard({
   return (
     <div id="dashboard-section" className="space-y-6">
       {/* Header com slogan da marca */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-gray-200">
-        <div>
-          <h2 className="text-2xl font-serif text-gray-900">Olá, Bem-vinda!</h2>
-          <p className="text-sm text-gray-400">Confira o resumo do seu negócio hoje.</p>
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-gray-200">
+        <div className="flex items-center justify-between md:block">
+          <div>
+            <h2 className="text-xl md:text-2xl font-serif text-gray-900">Olá, Bem-vinda!</h2>
+            <p className="text-[10px] md:text-sm text-gray-400">Confira o resumo do seu negócio hoje.</p>
+          </div>
+          <div className="md:hidden w-12 h-12 bg-white rounded-full border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+            <img src="https://i.imgur.com/XAhbi19.png" alt="Logo" className="w-full h-full object-contain" />
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
+        
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1 bg-white p-1 rounded-xl shadow-xs border border-gray-200">
             <button
               onClick={() => setTimeRange('month')}
               id="btn-metrics-month"
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] md:text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                 timeRange === 'month'
                   ? 'bg-gold-500 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -183,7 +189,7 @@ export default function Dashboard({
             <button
               onClick={() => setTimeRange('total')}
               id="btn-metrics-total"
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] md:text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                 timeRange === 'total'
                   ? 'bg-gold-500 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -197,22 +203,22 @@ export default function Dashboard({
             onClick={handleGenerateReport}
             disabled={isGeneratingPdf}
             id="btn-generate-report-pdf"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-gold-500 to-rose-gold-500 hover:from-gold-600 hover:to-rose-gold-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold text-xs rounded-lg transition-all shadow-xs cursor-pointer h-[32px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-gold-500 to-rose-gold-500 hover:from-gold-600 hover:to-rose-gold-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold text-[10px] md:text-xs rounded-lg transition-all shadow-xs cursor-pointer h-[32px] whitespace-nowrap"
           >
             {isGeneratingPdf ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Gerando...
+                <span className="hidden sm:inline">Gerando...</span>
               </>
             ) : (
               <>
                 <FileDown className="w-3.5 h-3.5" />
-                Relatório PDF
+                PDF
               </>
             )}
           </button>
 
-          <div className="flex gap-3 items-center">
+          <div className="hidden md:flex gap-3 items-center">
             <div className="text-right">
               <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold leading-none">Faturamento</p>
               <p className="text-lg font-bold text-gold-500 mt-1 leading-none">
@@ -227,62 +233,62 @@ export default function Dashboard({
       </header>
 
       {/* Cards de Métricas Principais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {/* Total em Caixa / Vendas */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="bg-white p-5 rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between"
+          className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-tighter">Faturamento</span>
-            <div className="p-2 bg-gold-100 rounded-xl text-gold-500">
-              <DollarSign className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-2 md:mb-3">
+            <span className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-tighter">Vendas</span>
+            <div className="p-1.5 md:p-2 bg-gold-100 rounded-lg md:rounded-xl text-gold-500">
+              <DollarSign className="w-4 h-4 md:w-5 md:h-5" />
             </div>
           </div>
           <div>
-            <h3 className="text-xl md:text-2xl font-bold text-gold-500">
-              R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <h3 className="text-base md:text-2xl font-bold text-gold-500">
+              R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
             </h3>
-            <p className="text-xs text-gray-400 mt-1">Total vendido no período</p>
+            <p className="text-[10px] text-gray-400 mt-1">Total vendido</p>
           </div>
         </motion.div>
 
         {/* Lucro Estimado */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="bg-white p-5 rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between"
+          className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-tighter">Lucro Real</span>
-            <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
-              <TrendingUp className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-2 md:mb-3">
+            <span className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-tighter">Lucro</span>
+            <div className="p-1.5 md:p-2 bg-emerald-50 rounded-lg md:rounded-xl text-emerald-600">
+              <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
             </div>
           </div>
           <div>
-            <h3 className="text-xl md:text-2xl font-bold text-gray-900">
-              R$ {totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <h3 className="text-base md:text-2xl font-bold text-gray-900">
+              R$ {totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
             </h3>
-            <p className="text-xs text-gray-400 mt-1">Margem média: {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(0) : 0}%</p>
+            <p className="text-[10px] text-gray-400 mt-1">Margem: {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(0) : 0}%</p>
           </div>
         </motion.div>
 
         {/* Produto Mais Vendido */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="bg-gold-100 p-5 rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between col-span-2 lg:col-span-1"
+          className="bg-gold-100 p-4 md:p-5 rounded-2xl md:rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between col-span-2 lg:col-span-1"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gold-500 uppercase tracking-tighter">Mais Vendido</span>
-            <div className="p-2 bg-white rounded-xl text-gold-500 shadow-xs">
-              <ShoppingBag className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-2 md:mb-3">
+            <span className="text-[10px] md:text-xs font-semibold text-gold-500 uppercase tracking-tighter">Top Item</span>
+            <div className="p-1.5 md:p-2 bg-white rounded-lg md:rounded-xl text-gold-500 shadow-xs">
+              <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
             </div>
           </div>
           <div>
-            <h3 className="text-base md:text-lg font-bold text-gray-900 line-clamp-1 font-serif" title={bestSeller}>
+            <h3 className="text-sm md:text-lg font-bold text-gray-900 line-clamp-1 font-serif" title={bestSeller}>
               {bestSeller}
             </h3>
-            <p className="text-xs text-gray-600 mt-1">
-              {bestSellerQty > 0 ? `${bestSellerQty} unidades vendidas` : 'Sem vendas no período'}
+            <p className="text-[10px] text-gray-600 mt-1">
+              {bestSellerQty > 0 ? `${bestSellerQty} unidades` : 'Sem vendas'}
             </p>
           </div>
         </motion.div>
@@ -290,19 +296,19 @@ export default function Dashboard({
         {/* Clientes Ativos */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="bg-white p-5 rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between"
+          className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[32px] border border-gray-200 shadow-sm flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-tighter">Clientes Ativos</span>
-            <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
-              <Users className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-2 md:mb-3">
+            <span className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-tighter">Ativos</span>
+            <div className="p-1.5 md:p-2 bg-blue-50 rounded-lg md:rounded-xl text-blue-600">
+              <Users className="w-4 h-4 md:w-5 md:h-5" />
             </div>
           </div>
           <div>
-            <h3 className="text-xl md:text-2xl font-bold text-gray-900">
-              {activeCustomersCount} <span className="text-xs font-normal text-gray-400">/ {customers.length}</span>
+            <h3 className="text-base md:text-2xl font-bold text-gray-900">
+              {activeCustomersCount} <span className="text-[10px] font-normal text-gray-400">/ {customers.length}</span>
             </h3>
-            <p className="text-xs text-gray-400 mt-1">Compraram nos últimos 30 dias</p>
+            <p className="text-[10px] text-gray-400 mt-1">Últimos 30 dias</p>
           </div>
         </motion.div>
       </div>
