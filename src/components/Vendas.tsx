@@ -22,11 +22,22 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('Pix');
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
-  const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
+  const [cart, setCart] = useState<{ product: Product; quantity: number; sellPrice: number }[]>([]);
 
   // Temporary selectors for adding products to cart
   const [tempProductId, setTempProductId] = useState('');
   const [tempQuantity, setTempQuantity] = useState(1);
+  const [tempSellPrice, setTempSellPrice] = useState<string>('');
+
+  const handleSelectTempProduct = (productId: string) => {
+    setTempProductId(productId);
+    const prod = products.find(p => p.id === productId);
+    if (prod) {
+      setTempSellPrice(prod.sellPrice.toString());
+    } else {
+      setTempSellPrice('');
+    }
+  };
 
   // Add item to active cart
   const handleAddToCart = () => {
@@ -38,18 +49,35 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
       alert('Aviso: Este produto não possui unidades em estoque.');
     }
 
-    // Check if product already exists in cart
-    const existingIndex = cart.findIndex(item => item.product.id === product.id);
+    const priceInput = parseFloat(tempSellPrice);
+    const customPrice = !isNaN(priceInput) && priceInput >= 0 ? priceInput : product.sellPrice;
+
+    // Check if product with same sellPrice already exists in cart
+    const existingIndex = cart.findIndex(item => item.product.id === product.id && item.sellPrice === customPrice);
     if (existingIndex > -1) {
       const updatedCart = [...cart];
       updatedCart[existingIndex].quantity += tempQuantity;
       setCart(updatedCart);
     } else {
-      setCart([...cart, { product, quantity: tempQuantity }]);
+      setCart([...cart, { product, quantity: tempQuantity, sellPrice: customPrice }]);
     }
 
     setTempProductId('');
     setTempQuantity(1);
+    setTempSellPrice('');
+  };
+
+  // Inline cart item updates
+  const handleUpdateCartQuantity = (index: number, quantity: number) => {
+    const updated = [...cart];
+    updated[index].quantity = Math.max(1, quantity);
+    setCart(updated);
+  };
+
+  const handleUpdateCartPrice = (index: number, price: number) => {
+    const updated = [...cart];
+    updated[index].sellPrice = Math.max(0, price);
+    setCart(updated);
   };
 
   // Remove from cart
@@ -82,7 +110,7 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
       productName: item.product.name,
       quantity: item.quantity,
       costPrice: item.product.costPrice,
-      sellPrice: item.product.sellPrice
+      sellPrice: item.sellPrice
     }));
 
     const totalAmount = items.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0);
@@ -510,76 +538,98 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
                 {/* Seção Adicionar Itens ao Carrinho */}
                 <div className="bg-gold-50/40 p-4 rounded-xl border border-gold-200/20 space-y-3">
                   <h4 className="text-xs font-bold text-gold-800 uppercase tracking-wider">Adicionar Itens à Venda</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-3">
                     {/* Seleção de Produto */}
-                    <div className="md:col-span-2 space-y-2">
+                    <div className="space-y-2">
                       <select
                         value={tempProductId}
-                        onChange={(e) => setTempProductId(e.target.value)}
+                        onChange={(e) => handleSelectTempProduct(e.target.value)}
                         id="sale-product-select"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900 font-medium"
                       >
                         <option value="">-- Selecione o Produto --</option>
                         {products.map(p => (
                           <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                            {p.name} - R$ {p.sellPrice.toFixed(2)} (Em estoque: {p.quantity} un)
+                            {p.name} - Preço no Estoque: R$ {p.sellPrice.toFixed(2)} (Em estoque: {p.quantity} un)
                           </option>
                         ))}
                       </select>
 
-                      {/* Preview do produto selecionado */}
+                      {/* Preview e Ajuste de Preço e Quantidade */}
                       <AnimatePresence>
                         {tempProductId && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gold-100/50"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-gold-200/50 shadow-2xs"
                           >
-                            <div className="w-12 h-12 rounded-md bg-gray-50 overflow-hidden flex-shrink-0 border border-gray-100">
-                              {products.find(p => p.id === tempProductId)?.photoUrl ? (
-                                <img 
-                                  src={products.find(p => p.id === tempProductId)?.photoUrl} 
-                                  alt="Preview" 
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                  <ShoppingBag className="w-5 h-5" />
-                                </div>
-                              )}
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-lg bg-gray-50 overflow-hidden flex-shrink-0 border border-gray-100">
+                                {products.find(p => p.id === tempProductId)?.photoUrl ? (
+                                  <img 
+                                    src={products.find(p => p.id === tempProductId)?.photoUrl} 
+                                    alt="Preview" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                    <ShoppingBag className="w-4 h-4" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-gray-900 truncate">
+                                  {products.find(p => p.id === tempProductId)?.name}
+                                </p>
+                                <p className="text-[10px] text-gray-500">
+                                  Preço de tabela: <span className="line-through text-gray-400">R$ {products.find(p => p.id === tempProductId)?.sellPrice.toFixed(2)}</span>
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-bold text-gray-900 truncate">
-                                {products.find(p => p.id === tempProductId)?.name}
-                              </p>
-                              <p className="text-[9px] text-gold-600 font-bold">
-                                R$ {products.find(p => p.id === tempProductId)?.sellPrice.toFixed(2)}
-                              </p>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="space-y-0.5">
+                                <label className="text-[9px] font-bold text-gray-500 uppercase block">Preço de Venda (R$)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                  value={tempSellPrice}
+                                  onChange={(e) => setTempSellPrice(e.target.value)}
+                                  id="sale-temp-price-input"
+                                  className="w-24 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gold-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-500 text-right"
+                                />
+                              </div>
+
+                              <div className="space-y-0.5">
+                                <label className="text-[9px] font-bold text-gray-500 uppercase block text-center">Qtd</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={tempQuantity}
+                                  onChange={(e) => setTempQuantity(parseInt(e.target.value) || 1)}
+                                  id="sale-quantity-input"
+                                  className="w-16 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-center text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                                />
+                              </div>
+
+                              <div className="space-y-0.5 flex flex-col justify-end">
+                                <span className="text-[9px] font-bold text-transparent select-none">.</span>
+                                <button
+                                  type="button"
+                                  onClick={handleAddToCart}
+                                  id="btn-add-to-cart"
+                                  className="bg-gold-500 hover:bg-gold-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-all shadow-2xs"
+                                >
+                                  Adicionar
+                                </button>
+                              </div>
                             </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </div>
-
-                    {/* Quantidade e Botão Adicionar */}
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        value={tempQuantity}
-                        onChange={(e) => setTempQuantity(parseInt(e.target.value) || 1)}
-                        id="sale-quantity-input"
-                        className="w-20 px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 text-center text-gray-900"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddToCart}
-                        id="btn-add-to-cart"
-                        className="flex-1 bg-gold-500 hover:bg-gold-600 text-white font-bold text-xs px-3 rounded-lg transition-all"
-                      >
-                        Adicionar
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -588,11 +638,11 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-gray-700 uppercase">Carrinho / Itens Selecionados</span>
                   {cart.length > 0 ? (
-                    <div className="border border-gray-100 rounded-xl overflow-hidden max-h-40 overflow-y-auto">
-                      <div className="divide-y divide-gray-50 text-xs">
+                    <div className="border border-gray-100 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                      <div className="divide-y divide-gray-100 text-xs">
                         {cart.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
-                            <div className="flex items-center gap-3">
+                          <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
                               <div className="w-10 h-10 rounded bg-white overflow-hidden border border-gray-100 shrink-0">
                                 {item.product.photoUrl ? (
                                   <img src={item.product.photoUrl} alt={item.product.name} className="w-full h-full object-cover" />
@@ -602,17 +652,46 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
                                   </div>
                                 )}
                               </div>
-                              <div>
-                                <p className="font-semibold text-gray-900">{item.product.name}</p>
-                                <p className="text-gray-500 text-[10px]">
-                                  {item.quantity}x de R$ {item.product.sellPrice.toFixed(2)}
-                                </p>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-gray-900 truncate">{item.product.name}</p>
+                                {item.sellPrice !== item.product.sellPrice && (
+                                  <p className="text-[9px] text-amber-600 font-medium">
+                                    Preço alterado (Tabela: R$ {item.product.sellPrice.toFixed(2)})
+                                  </p>
+                                )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-gray-900">
-                                R$ {(item.product.sellPrice * item.quantity).toFixed(2)}
+
+                            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-1 sm:pt-0 border-t sm:border-0 border-gray-100">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400 font-bold">R$</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={item.sellPrice}
+                                  onChange={(e) => handleUpdateCartPrice(index, parseFloat(e.target.value) || 0)}
+                                  className="w-16 px-1 py-0.5 bg-white border border-gray-200 rounded text-xs font-bold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gold-500 text-right"
+                                  title="Editar preço de venda neste item"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400 font-bold">x</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => handleUpdateCartQuantity(index, parseInt(e.target.value) || 1)}
+                                  className="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded text-xs font-bold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gold-500 text-center"
+                                  title="Editar quantidade"
+                                />
+                              </div>
+
+                              <span className="font-bold text-gray-900 text-xs min-w-[70px] text-right">
+                                R$ {(item.sellPrice * item.quantity).toFixed(2)}
                               </span>
+
                               <button
                                 type="button"
                                 onClick={() => handleRemoveFromCart(index)}
@@ -675,7 +754,7 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
                   <div className="bg-rose-gold-50/30 p-4 rounded-xl border border-rose-gold-200/20 flex flex-col justify-center items-end text-right">
                     <span className="text-xs font-bold text-rose-gold-600 uppercase">Valor Total</span>
                     <span className="text-2xl font-black text-gray-900 mt-1">
-                      R$ {cart.reduce((sum, item) => sum + (item.product.sellPrice * item.quantity), 0).toFixed(2)}
+                      R$ {cart.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
