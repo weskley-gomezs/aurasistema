@@ -114,24 +114,21 @@ export default function Fiado({ sales, customers, onMarkAsPaid, onEditSale, onDe
     // Group items by sale date for clearer messaging
     const salesSummary = salesList.map(s => {
       const date = new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR');
+      const dueDateStr = s.dueDate ? new Date(s.dueDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'a combinar';
       const items = s.items.map(it => it.productName).join(', ');
-      return `📅 ${date}: ${items}`;
-    }).join('\n');
+      return `🛍️ Sua compra no dia ${date} com pagamento para ${dueDateStr}\nItens: ${items}`;
+    }).join('\n\n');
 
-    const dueDates = salesList.map(s => s.dueDate).filter(Boolean) as string[];
-    const firstDueDate = dueDates.length > 0 ? dueDates[0] : null;
-    const formattedDueDate = firstDueDate 
-      ? new Date(firstDueDate + 'T12:00:00').toLocaleDateString('pt-BR') 
-      : null;
+    const pixKey = "(61) 992096078";
 
     switch (selectedTemplate) {
       case 'gentil':
-        return `Olá, ${customerName}! Tudo bem? 🌸 Passei para lembrar das suas pendências na Aura Dourada Sistema:\n\n${salesSummary}\n\nO valor total em aberto é de *R$ ${formattedAmount}*${formattedDueDate ? `. Tínhamos combinado para o dia ${formattedDueDate}` : ''}.\n\nSe precisar, me avisa para combinarmos o Pix. Muito obrigada! 🥰✨`;
+        return `Olá, ${customerName}! Tudo bem? 🌸 Passei para lembrar sobre:\n\n${salesSummary}\n\nO valor total em aberto é de *R$ ${formattedAmount}*.\n\nChave Pix para pagamento: ${pixKey}\n\nSe precisar, me avisa. Muito obrigada! 🥰✨`;
       case 'direta':
-        return `Olá, ${customerName}! Passando para fazer o acerto da sua pendência de *R$ ${formattedAmount}* na Aura Dourada Sistema referente a:\n\n${salesSummary}\n\nVocê prefere realizar o pagamento via Pix ou dinheiro? Me avise para eu poder dar baixa aqui no sistema. Aguardo seu retorno! 👍`;
+        return `Olá, ${customerName}! Passando para fazer o acerto do valor de *R$ ${formattedAmount}* na Aura Dourada referente a:\n\n${salesSummary}\n\nChave Pix: ${pixKey}\n\nVocê prefere realizar o pagamento via Pix ou dinheiro? Me avise para eu dar baixa. Aguardo seu retorno! 👍`;
       case 'lembrete':
       default:
-        return `Olá, ${customerName}! Lembrete rápido do acerto do seu fiado no valor de *R$ ${formattedAmount}*.\n\nItens pendentes:\n${salesSummary}\n\nChave Pix para pagamento: (Insira sua chave Pix aqui).\nQualquer dúvida estou à disposição! 🌟`;
+        return `Olá, ${customerName}! Lembrete rápido do acerto no valor de *R$ ${formattedAmount}*.\n\n${salesSummary}\n\nChave Pix para pagamento: ${pixKey}.\nQualquer dúvida estou à disposição! 🌟`;
     }
   };
 
