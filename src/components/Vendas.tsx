@@ -459,14 +459,50 @@ export default function Vendas({ sales, products, customers, onAddSale, onDelete
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-700 uppercase">Data da Venda *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-gold-500" /> Data da Venda *
+                      </label>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSaleDate(new Date().toISOString().split('T')[0])}
+                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                            saleDate === new Date().toISOString().split('T')[0]
+                              ? 'bg-gold-500 text-white shadow-2xs'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          Hoje
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const yesterday = new Date();
+                            yesterday.setDate(yesterday.getDate() - 1);
+                            setSaleDate(yesterday.toISOString().split('T')[0]);
+                          }}
+                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                            saleDate === (() => {
+                              const y = new Date();
+                              y.setDate(y.getDate() - 1);
+                              return y.toISOString().split('T')[0];
+                            })()
+                              ? 'bg-gold-500 text-white shadow-2xs'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          Ontem
+                        </button>
+                      </div>
+                    </div>
                     <input
                       type="date"
                       required
                       value={saleDate}
                       onChange={(e) => setSaleDate(e.target.value)}
                       id="sale-date-input"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900 font-medium"
                     />
                   </div>
                 </div>
