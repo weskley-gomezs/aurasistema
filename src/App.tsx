@@ -8,19 +8,20 @@ import Clientes from './components/Clientes';
 import Fiado from './components/Fiado';
 import PublicCatalog from './components/PublicCatalog';
 import { 
-  isFirebaseConfigured, 
-  migrateLocalDataToFirestore,
-  saveProductToFirestore, 
-  deleteProductFromFirestore, 
-  saveCustomerToFirestore, 
-  deleteCustomerFromFirestore, 
-  saveSaleToFirestore, 
-  deleteSaleFromFirestore,
-  resetFirestoreWithData,
+  isSupabaseConfigured as isFirebaseConfigured, 
+  migrateLocalDataToSupabase as migrateLocalDataToFirestore,
+  saveProductToSupabase as saveProductToFirestore, 
+  deleteProductFromSupabase as deleteProductFromFirestore, 
+  saveCustomerToSupabase as saveCustomerToFirestore, 
+  deleteCustomerFromSupabase as deleteCustomerFromFirestore, 
+  saveSaleToSupabase as saveSaleToFirestore, 
+  deleteSaleFromSupabase as deleteSaleFromFirestore,
+  resetSupabaseWithData as resetFirestoreWithData,
   subscribeToProducts,
   subscribeToCustomers,
-  subscribeToSales
-} from './utils/firebase';
+  subscribeToSales,
+  generateUUID
+} from './utils/supabase';
 import { 
   Sparkles, 
   LayoutDashboard, 
@@ -171,7 +172,7 @@ export default function App() {
   const handleAddProduct = async (newProd: Omit<Product, 'id'>) => {
     const productWithId: Product = {
       ...newProd,
-      id: `prod_${Date.now()}`
+      id: generateUUID()
     };
     const updated = [...products, productWithId];
     saveProducts(updated);
@@ -215,7 +216,7 @@ export default function App() {
   const handleAddSale = async (newSale: Omit<Sale, 'id'>) => {
     const saleWithId: Sale = {
       ...newSale,
-      id: `sale_${Date.now()}`
+      id: generateUUID()
     };
 
     // Deduct stock quantities
@@ -254,7 +255,7 @@ export default function App() {
   const handleAddCustomer = async (newCust: Omit<Customer, 'id'>) => {
     const customerWithId: Customer = {
       ...newCust,
-      id: `cust_${Date.now()}`
+      id: generateUUID()
     };
     const updated = [...customers, customerWithId];
     saveCustomers(updated);
