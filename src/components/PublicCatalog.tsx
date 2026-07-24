@@ -8,9 +8,25 @@ interface PublicCatalogProps {
   isLoading: boolean;
 }
 
-const HERO_SLIDES = [
-  'https://i.imgur.com/WzfV5HP.png',
-  'https://i.imgur.com/H0OIeiE.png'
+interface HeroSlide {
+  desktop: string;
+  mobile: string;
+  alt: string;
+  linkMessage?: string;
+}
+
+const HERO_SLIDES: HeroSlide[] = [
+  {
+    desktop: 'https://i.imgur.com/WzfV5HP.png',
+    mobile: 'https://i.imgur.com/lfJwldz.png',
+    alt: 'Banner Aura Dourada Slide 1'
+  },
+  {
+    desktop: 'https://i.imgur.com/H0OIeiE.png',
+    mobile: 'https://i.imgur.com/q0Ak3CE.png',
+    alt: 'Kit Natura Homem Identidade Slide 2',
+    linkMessage: 'Olá! ✨ Tenho interesse no *Kit Natura Homem Identidade* (R$ 299,00) que vi no seu catálogo online da Aura Dourada! Gostaria de verificar informações e como faço para encomendar! 🎁🛍️'
+  }
 ];
 
 const CATEGORY_LABELS: Record<Category, string> = {
@@ -68,6 +84,12 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
     return matchesSearch && matchesCategory;
   });
 
+  const getSlideWhatsAppLink = (slide: HeroSlide) => {
+    if (!slide.linkMessage) return null;
+    const phone = phoneParam || '5561992096078';
+    return `https://wa.me/${phone}?text=${encodeURIComponent(slide.linkMessage)}`;
+  };
+
   const getWhatsAppLink = (product: Product) => {
     if (!product) return '#';
     const brand = (product.brand || 'Aura').toUpperCase();
@@ -123,19 +145,49 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
             Seja bem-vinda(o)! Navegue pelas nossas melhores fragrâncias e cosméticos exclusivos. Clique para fazer seu pedido pelo WhatsApp.
           </p>
 
-          {/* Hero Banner Slideshow (8-second fade animation) */}
-          <div className="w-full max-w-6xl mt-6 relative rounded-2xl md:rounded-3xl overflow-hidden border border-gold-500/30 shadow-2xl bg-black/40 aspect-[21/9] sm:aspect-[2.8/1] md:aspect-[3/1]">
+          {/* Hero Banner Slideshow (8-second fade animation with mobile 600x600 & desktop formats) */}
+          <div className="w-full max-w-6xl mt-6 relative rounded-2xl md:rounded-3xl overflow-hidden border border-gold-500/30 shadow-2xl bg-black/40 aspect-square sm:aspect-[2.8/1] md:aspect-[3/1]">
             <AnimatePresence mode="wait">
-              <motion.img
+              <motion.div
                 key={currentSlide}
-                src={HERO_SLIDES[currentSlide]}
-                alt={`Banner Aura Dourada Slide ${currentSlide + 1}`}
                 initial={{ opacity: 0, scale: 0.99 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.01 }}
                 transition={{ duration: 1.0, ease: "easeInOut" }}
-                className="w-full h-full object-cover object-center"
-              />
+                className="w-full h-full"
+              >
+                {getSlideWhatsAppLink(HERO_SLIDES[currentSlide]) ? (
+                  <a
+                    href={getSlideWhatsAppLink(HERO_SLIDES[currentSlide])!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full h-full group relative cursor-pointer"
+                    title="Clique para pedir este Kit pelo WhatsApp"
+                  >
+                    <picture className="w-full h-full block">
+                      <source media="(max-width: 639px)" srcSet={HERO_SLIDES[currentSlide].mobile} />
+                      <img
+                        src={HERO_SLIDES[currentSlide].desktop}
+                        alt={HERO_SLIDES[currentSlide].alt}
+                        className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-700"
+                      />
+                    </picture>
+                    <div className="absolute bottom-12 sm:bottom-4 right-4 bg-emerald-600/90 hover:bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-md transition-all group-hover:scale-105 z-10">
+                      <MessageCircle className="w-4 h-4 text-white" />
+                      <span>Pedir no WhatsApp</span>
+                    </div>
+                  </a>
+                ) : (
+                  <picture className="w-full h-full block">
+                    <source media="(max-width: 639px)" srcSet={HERO_SLIDES[currentSlide].mobile} />
+                    <img
+                      src={HERO_SLIDES[currentSlide].desktop}
+                      alt={HERO_SLIDES[currentSlide].alt}
+                      className="w-full h-full object-cover object-center"
+                    />
+                  </picture>
+                )}
+              </motion.div>
             </AnimatePresence>
 
             {/* Slide Navigation Buttons */}
