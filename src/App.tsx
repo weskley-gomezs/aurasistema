@@ -8,19 +8,21 @@ import Clientes from './components/Clientes';
 import Fiado from './components/Fiado';
 import PublicCatalog from './components/PublicCatalog';
 import { 
-  isSupabaseConfigured as isFirebaseConfigured, 
-  migrateLocalDataToSupabase as migrateLocalDataToFirestore,
-  saveProductToSupabase as saveProductToFirestore, 
-  deleteProductFromSupabase as deleteProductFromFirestore, 
-  saveCustomerToSupabase as saveCustomerToFirestore, 
-  deleteCustomerFromSupabase as deleteCustomerFromFirestore, 
-  saveSaleToSupabase as saveSaleToFirestore, 
-  deleteSaleFromSupabase as deleteSaleFromFirestore,
-  resetSupabaseWithData as resetFirestoreWithData,
+  isSupabaseConfigured,
+  supabaseClient,
+  fetchProducts,
+  fetchCustomers,
+  fetchSales,
+  saveProductToSupabase, 
+  deleteProductFromSupabase, 
+  saveCustomerToSupabase, 
+  deleteCustomerFromSupabase, 
+  saveSaleToSupabase, 
+  deleteSaleFromSupabase,
+  resetSupabaseWithData,
   subscribeToProducts,
   subscribeToCustomers,
-  subscribeToSales,
-  generateUUID
+  subscribeToSales
 } from './utils/supabase';
 import { 
   Sparkles, 
@@ -29,18 +31,15 @@ import {
   Receipt, 
   Users, 
   CreditCard, 
-  Download, 
-  Upload, 
   RefreshCw, 
   CheckCircle2,
-  Lock,
-  ChevronRight,
   Clock,
   ArrowRight,
   X,
   AlertCircle,
   Wifi,
-  WifiOff
+  WifiOff,
+  Database
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -68,45 +67,39 @@ export default function App() {
     const isCat = view === 'catalogo' || view === 'catalog' || params.has('catalogo') || params.has('catalog');
     setIsPublicCatalog(isCat);
   }, []);
-  // 1. Initial Load and Migration
+
+  // 1. Initial Load from Supabase
   useEffect(() => {
     async function init() {
-      console.log('[App Debug] Iniciando inicialização do App...');
+      if (!isSupabaseConfigured) {
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('[App Debug] Supabase configurado, carregando dados...');
       setIsLoading(true);
       try {
-        if (isFirebaseConfigured) {
-          console.log('[App Debug] Firebase configurado, executando migração...');
-          // Perform unique migration if needed
-          await migrateLocalDataToFirestore();
-        } else {
-          console.log('[App Debug] Firebase NÃO configurado, usando LocalStorage fallback');
-          // Fallback for dev without Firebase
-          const localProds = localStorage.getItem('aura_products');
-          const localCusts = localStorage.getItem('aura_customers');
-          const localSales = localStorage.getItem('aura_sales');
-          
-          if (localProds) setProducts(JSON.parse(localProds));
-          else setProducts(INITIAL_PRODUCTS);
-          
-          if (localCusts) setCustomers(JSON.parse(localCusts));
-          else setCustomers(INITIAL_CUSTOMERS);
-          
-          if (localSales) setSales(JSON.parse(localSales));
-          else setSales(INITIAL_SALES);
-          
-          setIsLoading(false);
-        }
+        const [prods, custs, sls] = await Promise.all([
+          fetchProducts(),
+          fetchCustomers(),
+          fetchSales()
+        ]);
+        setProducts(prods);
+        setCustomers(custs);
+        setSales(sls);
+        setIsLoading(false);
+        setLastSavedAt(new Date().toLocaleTimeString('pt-BR'));
       } catch (err) {
-        console.error('Erro na inicialização:', err);
+        console.error('Erro ao carregar dados do Supabase:', err);
         setIsLoading(false);
       }
     }
     init();
   }, []);
 
-  // 2. Real-time Subscriptions
+  // 2. Real-time Subscriptions via Supabase
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
+    if (!isSupabaseConfigured) return;
 
     const unsubProducts = subscribeToProducts((prods) => {
       setProducts(prods);
@@ -127,39 +120,7 @@ export default function App() {
       unsubCustomers();
       unsubSales();
     };
-  }, [isFirebaseConfigured]);
-
-  // Periodic UI feedback for sync status (optional, since it's real-time now)
-  useEffect(() => {
-    if (isLoading) return;
-    const interval = setInterval(() => {
-      // Just to update the "Last saved" if we want to show it's "Live"
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Save helpers - Now they only push to Firestore (listeners handle state)
-  const saveProducts = async (updated: Product[]) => {
-    // If no Firebase, use LocalStorage
-    if (!isFirebaseConfigured) {
-      setProducts(updated);
-      localStorage.setItem('aura_products', JSON.stringify(updated));
-    }
-  };
-
-  const saveCustomers = async (updated: Customer[]) => {
-    if (!isFirebaseConfigured) {
-      setCustomers(updated);
-      localStorage.setItem('aura_customers', JSON.stringify(updated));
-    }
-  };
-
-  const saveSales = async (updated: Sale[]) => {
-    if (!isFirebaseConfigured) {
-      setSales(updated);
-      localStorage.setItem('aura_sales', JSON.stringify(updated));
-    }
-  };
+  }, []);
 
   // Toast Helper
   const triggerToast = (msg: string) => {
@@ -167,192 +128,148 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-
   // 1. Inventory actions
   const handleAddProduct = async (newProd: Omit<Product, 'id'>) => {
-    const productWithId: Product = {
-      ...newProd,
-      id: generateUUID()
-    };
-    const updated = [...products, productWithId];
-    saveProducts(updated);
-    if (isFirebaseConfigured) {
-      try {
-        await saveProductToFirestore(productWithId);
-      } catch (err) {
-        console.error('Erro ao salvar no Firestore:', err);
-      }
+    try {
+      const saved = await saveProductToSupabase(newProd as Product);
+      setProducts(prev => [...prev, saved]);
+      triggerToast('Produto cadastrado com sucesso! ✨');
+    } catch (err) {
+      console.error('Erro ao salvar produto:', err);
+      triggerToast('Erro ao cadastrar produto.');
     }
-    triggerToast('Produto cadastrado com sucesso! ✨');
   };
 
   const handleEditProduct = async (updatedProd: Product) => {
-    const updated = products.map(p => p.id === updatedProd.id ? updatedProd : p);
-    saveProducts(updated);
-    if (isFirebaseConfigured) {
-      try {
-        await saveProductToFirestore(updatedProd);
-      } catch (err) {
-        console.error('Erro ao atualizar no Firestore:', err);
-      }
+    try {
+      const saved = await saveProductToSupabase(updatedProd);
+      setProducts(prev => prev.map(p => p.id === saved.id ? saved : p));
+      triggerToast('Produto atualizado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao atualizar produto:', err);
+      triggerToast('Erro ao atualizar produto.');
     }
-    triggerToast('Produto atualizado com sucesso!');
   };
 
   const handleDeleteProduct = async (id: string) => {
-    const updated = products.filter(p => p.id !== id);
-    saveProducts(updated);
-    if (isFirebaseConfigured) {
-      try {
-        await deleteProductFromFirestore(id);
-      } catch (err) {
-        console.error('Erro ao excluir no Firestore:', err);
-      }
+    try {
+      await deleteProductFromSupabase(id);
+      setProducts(prev => prev.filter(p => p.id !== id));
+      triggerToast('Produto excluído do estoque.');
+    } catch (err) {
+      console.error('Erro ao excluir produto:', err);
+      triggerToast('Erro ao excluir produto.');
     }
-    triggerToast('Produto excluído do estoque.');
   };
 
   // 2. Sales actions (including stock deduction)
   const handleAddSale = async (newSale: Omit<Sale, 'id'>) => {
-    const saleWithId: Sale = {
-      ...newSale,
-      id: generateUUID()
-    };
+    try {
+      const savedSale = await saveSaleToSupabase(newSale as Sale);
 
-    // Deduct stock quantities
-    const updatedProducts = products.map(p => {
-      const saleItem = newSale.items.find(item => item.productId === p.id);
-      if (saleItem) {
-        const newQty = Math.max(0, p.quantity - saleItem.quantity);
-        return { ...p, quantity: newQty };
-      }
-      return p;
-    });
-
-    saveProducts(updatedProducts);
-    saveSales([saleWithId, ...sales]); // Add newest sales at the top
-
-    if (isFirebaseConfigured) {
-      try {
-        await saveSaleToFirestore(saleWithId);
-        // Save affected products
-        const affectedItems = newSale.items;
-        for (const item of affectedItems) {
-          const updatedP = updatedProducts.find(p => p.id === item.productId);
-          if (updatedP) {
-            await saveProductToFirestore(updatedP);
-          }
+      // Deduct stock quantities in Supabase for affected products
+      const updatedProducts = [...products];
+      for (const item of newSale.items) {
+        const prod = updatedProducts.find(p => p.id === item.productId);
+        if (prod) {
+          const newQty = Math.max(0, prod.quantity - item.quantity);
+          const updatedProd = { ...prod, quantity: newQty };
+          await saveProductToSupabase(updatedProd);
+          const idx = updatedProducts.findIndex(p => p.id === prod.id);
+          if (idx !== -1) updatedProducts[idx] = updatedProd;
         }
-      } catch (err) {
-        console.error('Erro ao salvar venda no Firestore:', err);
       }
-    }
 
-    triggerToast('Venda registrada e estoque atualizado! 🏷️');
+      setProducts(updatedProducts);
+      setSales(prev => [savedSale, ...prev]);
+      triggerToast('Venda registrada e estoque atualizado! 🏷️');
+    } catch (err) {
+      console.error('Erro ao registrar venda:', err);
+      triggerToast('Erro ao registrar venda.');
+    }
   };
 
   // 3. Customer actions
   const handleAddCustomer = async (newCust: Omit<Customer, 'id'>) => {
-    const customerWithId: Customer = {
-      ...newCust,
-      id: generateUUID()
-    };
-    const updated = [...customers, customerWithId];
-    saveCustomers(updated);
-    if (isFirebaseConfigured) {
-      try {
-        await saveCustomerToFirestore(customerWithId);
-      } catch (err) {
-        console.error('Erro ao salvar cliente no Firestore:', err);
-      }
+    try {
+      const saved = await saveCustomerToSupabase(newCust as Customer);
+      setCustomers(prev => [...prev, saved]);
+      triggerToast('Cliente cadastrado com sucesso! 👤');
+    } catch (err) {
+      console.error('Erro ao salvar cliente:', err);
+      triggerToast('Erro ao cadastrar cliente.');
     }
-    triggerToast('Cliente cadastrado com sucesso! 👤');
   };
 
   const handleEditCustomer = async (updatedCust: Customer) => {
-    const updated = customers.map(c => c.id === updatedCust.id ? updatedCust : c);
-    saveCustomers(updated);
-    if (isFirebaseConfigured) {
-      try {
-        await saveCustomerToFirestore(updatedCust);
-      } catch (err) {
-        console.error('Erro ao atualizar cliente no Firestore:', err);
-      }
+    try {
+      const saved = await saveCustomerToSupabase(updatedCust);
+      setCustomers(prev => prev.map(c => c.id === saved.id ? saved : c));
+      triggerToast('Cadastro do cliente atualizado!');
+    } catch (err) {
+      console.error('Erro ao atualizar cliente:', err);
+      triggerToast('Erro ao atualizar cliente.');
     }
-    triggerToast('Cadastro do cliente atualizado!');
   };
 
   const handleDeleteCustomer = async (id: string) => {
-    const updated = customers.filter(c => c.id !== id);
-    saveCustomers(updated);
-    if (isFirebaseConfigured) {
-      try {
-        await deleteCustomerFromFirestore(id);
-      } catch (err) {
-        console.error('Erro ao excluir cliente no Firestore:', err);
-      }
+    try {
+      await deleteCustomerFromSupabase(id);
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      triggerToast('Cliente excluído do cadastro.');
+    } catch (err) {
+      console.error('Erro ao excluir cliente:', err);
+      triggerToast('Erro ao excluir cliente.');
     }
-    triggerToast('Cliente excluído do cadastro.');
   };
 
   // 4. Fiado actions
   const handleMarkAsPaid = async (saleId: string, newMethod?: PaymentMethod) => {
-    let updatedSale: Sale | undefined;
-    const updatedSales = sales.map(s => {
-      if (s.id === saleId) {
-        const result: Sale = {
-          ...s,
-          status: 'pago' as const,
-          paidDate: new Date().toISOString().split('T')[0],
-          paymentMethod: newMethod || s.paymentMethod
-        };
-        updatedSale = result;
-        return result;
-      }
-      return s;
-    });
-    saveSales(updatedSales);
-    if (isFirebaseConfigured && updatedSale) {
-      try {
-        await saveSaleToFirestore(updatedSale);
-      } catch (err) {
-        console.error('Erro ao liquidar fiado no Firestore:', err);
-      }
+    const saleToUpdate = sales.find(s => s.id === saleId);
+    if (!saleToUpdate) return;
+
+    const updatedSale: Sale = {
+      ...saleToUpdate,
+      status: 'pago',
+      paidDate: new Date().toISOString().split('T')[0],
+      paymentMethod: newMethod || saleToUpdate.paymentMethod
+    };
+
+    try {
+      const saved = await saveSaleToSupabase(updatedSale);
+      setSales(prev => prev.map(s => s.id === saved.id ? saved : s));
+      triggerToast('Pagamento recebido com sucesso! 🎉');
+    } catch (err) {
+      console.error('Erro ao marcar venda como paga:', err);
+      triggerToast('Erro ao atualizar pagamento.');
     }
-    triggerToast('Pagamento recebido com sucesso! 🎉');
   };
 
   const handleEditSale = async (saleId: string, updates: Partial<Sale>) => {
-    let updatedSale: Sale | undefined;
-    const updatedSales = sales.map(s => {
-      if (s.id === saleId) {
-        updatedSale = { ...s, ...updates };
-        return updatedSale;
-      }
-      return s;
-    });
-    saveSales(updatedSales);
-    if (isFirebaseConfigured && updatedSale) {
-      try {
-        await saveSaleToFirestore(updatedSale);
-      } catch (err) {
-        console.error('Erro ao editar venda no Firestore:', err);
-      }
+    const saleToUpdate = sales.find(s => s.id === saleId);
+    if (!saleToUpdate) return;
+
+    const updatedSale: Sale = { ...saleToUpdate, ...updates };
+
+    try {
+      const saved = await saveSaleToSupabase(updatedSale);
+      setSales(prev => prev.map(s => s.id === saved.id ? saved : s));
+      triggerToast('Venda atualizada com sucesso! 📝');
+    } catch (err) {
+      console.error('Erro ao editar venda:', err);
+      triggerToast('Erro ao atualizar venda.');
     }
-    triggerToast('Venda atualizada com sucesso! 📝');
   };
 
   const handleDeleteSale = async (id: string) => {
-    const updated = sales.filter(s => s.id !== id);
-    saveSales(updated);
-    if (isFirebaseConfigured) {
-      try {
-        await deleteSaleFromFirestore(id);
-      } catch (err) {
-        console.error('Erro ao excluir venda no Firestore:', err);
-      }
+    try {
+      await deleteSaleFromSupabase(id);
+      setSales(prev => prev.filter(s => s.id !== id));
+      triggerToast('Registro de venda excluído.');
+    } catch (err) {
+      console.error('Erro ao excluir venda:', err);
+      triggerToast('Erro ao excluir venda.');
     }
-    triggerToast('Registro de venda excluído.');
   };
 
   // Backup & Restore System
@@ -386,43 +303,19 @@ export default function App() {
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed.products && parsed.customers && parsed.sales) {
           setIsLoading(true);
-          
-          setProducts(parsed.products);
-          setCustomers(parsed.customers);
-          setSales(parsed.sales);
-          
-          localStorage.setItem('aura_products', JSON.stringify(parsed.products));
-          localStorage.setItem('aura_customers', JSON.stringify(parsed.customers));
-          localStorage.setItem('aura_sales', JSON.stringify(parsed.sales));
-
-          // Single unified sync to the cloud
-          try {
-            await fetch('/api/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                products: parsed.products, 
-                customers: parsed.customers, 
-                sales: parsed.sales,
-                force: true 
-              })
-            });
-          } catch (syncErr) {
-            console.error('Erro ao sincronizar backup com o servidor:', syncErr);
-          }
-
-          if (isFirebaseConfigured) {
-            try {
-              await resetFirestoreWithData(parsed.products, parsed.customers, parsed.sales);
-            } catch (err) {
-              console.error('Erro ao redefinir Firestore:', err);
-            }
-          }
-          
+          await resetSupabaseWithData(parsed.products, parsed.customers, parsed.sales);
+          const [prods, custs, sls] = await Promise.all([
+            fetchProducts(),
+            fetchCustomers(),
+            fetchSales()
+          ]);
+          setProducts(prods);
+          setCustomers(custs);
+          setSales(sls);
           setIsLoading(false);
-          triggerToast('Backup restaurado com sucesso! 🔄');
+          triggerToast('Backup restaurado no Supabase com sucesso! 🔄');
         } else {
-          alert('Arquivo de backup inválido. Certifique-se de usar um arquivo exportado por este sistema.');
+          alert('Arquivo de backup inválido.');
         }
       } catch (err) {
         alert('Erro ao processar o arquivo de backup.');
@@ -430,45 +323,44 @@ export default function App() {
       }
     };
     reader.readAsText(file);
-    // Reset target value to allow uploading same file again
     e.target.value = '';
   };
 
   const handleForceSync = async () => {
-    if (!isFirebaseConfigured) {
-      triggerToast('Firebase não configurado.');
-      return;
-    }
-    
     setIsAutosaving(true);
     try {
-      // Force sync logic could be here, but with real-time it's usually unnecessary
-      // unless we want to re-push everything. Let's just say it's synced.
-      triggerToast('Sincronização em tempo real ativa! ⚡');
+      const [prods, custs, sls] = await Promise.all([
+        fetchProducts(),
+        fetchCustomers(),
+        fetchSales()
+      ]);
+      setProducts(prods);
+      setCustomers(custs);
+      setSales(sls);
+      triggerToast('Sincronização com Supabase concluída! ⚡');
     } catch (err) {
-      console.error('Erro ao sincronizar:', err);
-      triggerToast('Erro na sincronização.');
+      console.error('Erro na sincronização:', err);
+      triggerToast('Erro ao sincronizar.');
     } finally {
       setIsAutosaving(false);
     }
   };
 
   const handleResetToDefaults = async () => {
-    if (confirm('Atenção: Isso removerá todos os seus dados e restaurará os dados demonstrativos de fábrica. Deseja continuar?')) {
-      saveProducts(INITIAL_PRODUCTS);
-      saveCustomers(INITIAL_CUSTOMERS);
-      saveSales(INITIAL_SALES);
-      if (isFirebaseConfigured) {
-        try {
-          setIsLoading(true);
-          await resetFirestoreWithData(INITIAL_PRODUCTS, INITIAL_CUSTOMERS, INITIAL_SALES);
-        } catch (err) {
-          console.error('Erro ao redefinir Firestore:', err);
-        } finally {
-          setIsLoading(false);
-        }
+    if (confirm('Atenção: Isso substituirá todos os dados no Supabase pelos dados demonstrativos de fábrica. Deseja continuar?')) {
+      try {
+        setIsLoading(true);
+        await resetSupabaseWithData(INITIAL_PRODUCTS, INITIAL_CUSTOMERS, INITIAL_SALES);
+        setProducts(INITIAL_PRODUCTS);
+        setCustomers(INITIAL_CUSTOMERS);
+        setSales(INITIAL_SALES);
+        setIsLoading(false);
+        triggerToast('Dados demonstrativos restaurados no Supabase.');
+      } catch (err) {
+        console.error('Erro ao redefinir dados:', err);
+        setIsLoading(false);
+        triggerToast('Erro ao restaurar dados padrão.');
       }
-      triggerToast('Dados demonstrativos restaurados.');
     }
   };
 
@@ -477,7 +369,6 @@ export default function App() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      // Automatically refresh when coming back online
       window.location.reload();
     };
     const handleOffline = () => setIsOnline(false);
@@ -491,7 +382,6 @@ export default function App() {
     };
   }, []);
 
-  // Navigation Items
   const [showOverdueModal, setShowOverdueModal] = useState(false);
   const [overdueSummary, setOverdueSummary] = useState({ 
     todayCount: 0, 
@@ -523,7 +413,6 @@ export default function App() {
         overdueAmount
       });
       
-      // Only show popup automatically if there are things due today OR overdue
       if (dueToday.length > 0 || overdueSales.length > 0) {
         const sessionKey = `notified_overdue_${today}`;
         if (!sessionStorage.getItem(sessionKey)) {
@@ -548,6 +437,38 @@ export default function App() {
     },
   ];
 
+  // If Supabase is NOT configured, show clear configuration error screen
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-red-100">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-100">
+            <Database className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-serif font-bold text-gray-900 mb-2">Supabase Não Configurado</h2>
+          <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+            Esta aplicação requer o Supabase como banco de dados principal. Por favor, configure as variáveis de ambiente <code className="bg-gray-100 px-1.5 py-0.5 rounded text-red-600 font-mono text-xs">VITE_SUPABASE_URL</code> e <code className="bg-gray-100 px-1.5 py-0.5 rounded text-red-600 font-mono text-xs">VITE_SUPABASE_ANON_KEY</code> no arquivo <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800 font-mono text-xs">.env</code>.
+          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left text-xs text-amber-800 mb-6">
+            <p className="font-bold mb-1">Passos para configurar:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Crie um projeto no Supabase.</li>
+              <li>Copie a URL do projeto e a chave Anon/Public.</li>
+              <li>Adicione em <code className="font-mono">.env</code>.</li>
+              <li>Reinicie a aplicação.</li>
+            </ol>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-colors shadow-lg"
+          >
+            Verificar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isPublicCatalog) {
     return <PublicCatalog products={products} isLoading={isLoading} />;
   }
@@ -556,8 +477,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
         <img src="https://i.imgur.com/XAhbi19.png" alt="Logo Aura Dourada" className="w-20 h-20 mb-4 object-contain" />
-        <h2 className="text-xl font-serif text-gray-900 mb-1">Carregando dados...</h2>
-        <p className="text-xs text-gray-400">Sincronizando Aura Dourada Sistema</p>
+        <h2 className="text-xl font-serif text-gray-900 mb-1">Carregando dados do Supabase...</h2>
+        <p className="text-xs text-gray-400">Aura Dourada Sistema</p>
       </div>
     );
   }
@@ -579,7 +500,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
- 
+  
       {/* Offline Alert Banner */}
       <AnimatePresence>
         {!isOnline && (
@@ -596,7 +517,7 @@ export default function App() {
                 </div>
                 <div>
                   <p className="text-xs font-bold leading-none">Você está Offline</p>
-                  <p className="text-[10px] opacity-80 mt-1">O sistema está operando em Modo Local. Seus dados serão salvos no navegador.</p>
+                  <p className="text-[10px] opacity-80 mt-1">Conexão com a nuvem indisponível no momento.</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -609,25 +530,6 @@ export default function App() {
               </div>
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Online/Sync Notification */}
-      <AnimatePresence>
-        {isOnline && navigator.onLine && (
-          <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            key="online-notif"
-            onAnimationComplete={() => {
-              setTimeout(() => {
-                // This is a bit tricky to hide only after some time, 
-                // but let's keep it simple for now as a "back online" flash
-              }, 3000);
-            }}
-            className="hidden" // We'll use a more subtle approach for "back online"
-          />
         )}
       </AnimatePresence>
 
@@ -753,32 +655,18 @@ export default function App() {
             <h1 className="text-xl font-serif italic text-gold-500">Aura Dourada Sistema</h1>
             <p className="text-[10px] uppercase tracking-widest mt-1 opacity-60 text-gray-500">Gestão de Cosméticos</p>
             <div className="flex flex-col items-center gap-1.5 mt-3">
-              {isOnline ? (
-                isFirebaseConfigured ? (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-xs">
-                    <Wifi className="w-3 h-3" />
-                    Nuvem Conectada
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-gray-50 text-gray-400 border border-gray-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-                    Modo Local (Online)
-                  </span>
-                )
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-red-50 text-red-600 border border-red-100 shadow-sm animate-pulse">
-                  <WifiOff className="w-3 h-3" />
-                  Sem Conexão
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-xs">
+                <Wifi className="w-3 h-3" />
+                Supabase Ativo
+              </span>
               
               <div className="flex flex-col items-center mt-1">
                 <span className="inline-flex items-center gap-1 text-[9px] text-gray-500 font-medium">
                   <span className={`w-1.5 h-1.5 rounded-full ${isAutosaving ? 'bg-gold-500 animate-ping' : 'bg-emerald-400'}`}></span>
-                  {isAutosaving ? 'Salvamento Automático...' : 'Autosave Ativo'}
+                  {isAutosaving ? 'Sincronizando...' : 'Tempo Real'}
                 </span>
                 {lastSavedAt && (
-                  <span className="text-[8px] text-gray-400 font-mono mt-0.5">Último salve: {lastSavedAt}</span>
+                  <span className="text-[8px] text-gray-400 font-mono mt-0.5">Atualizado: {lastSavedAt}</span>
                 )}
               </div>
             </div>
@@ -890,7 +778,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Mobile Bottom Navigation Bar (Thumb friendly for fast access!) */}
+      {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 pb-[env(safe-area-inset-bottom)] pt-2 flex justify-around items-center z-[100] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         {navItems.map(item => {
           const Icon = item.icon;
@@ -913,7 +801,6 @@ export default function App() {
                 {item.id === 'fiado' ? 'Fiado' : item.label}
               </span>
 
-              {/* Outstanding notifications badge */}
               {item.badge !== undefined && item.badge > 0 && (
                 <span className={`absolute top-0 right-1/4 translate-x-1/2 font-extrabold text-[8px] h-4 min-w-4 px-1 rounded-full flex items-center justify-center shadow-xs border border-white ${
                   item.id === 'fiado' && (item as any).hasOverdue ? 'bg-red-600 text-white animate-pulse' : 'bg-red-500 text-white'
@@ -930,7 +817,7 @@ export default function App() {
       <div className="md:hidden fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-xs shadow-md rounded-xl border border-gold-100 p-1.5 flex gap-1.5 items-center">
         <div className="flex items-center gap-1.5 pl-1 pr-2">
           {!isOnline && <WifiOff className="w-3 h-3 text-red-500 animate-pulse" />}
-          <div className="flex flex-col" title={isAutosaving ? 'Salvando...' : `Último salvamento: ${lastSavedAt}`}>
+          <div className="flex flex-col">
             <div className="flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${isAutosaving ? 'bg-gold-500 animate-ping' : 'bg-emerald-400'}`}></span>
               {lastSavedAt && (

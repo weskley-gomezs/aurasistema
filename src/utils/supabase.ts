@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { Product, Customer, Sale } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_CUSTOMERS, INITIAL_SALES } from './initialData';
 
 // Supabase Environment configuration
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env.SUPABASE_URL : '') || '').trim();
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : '') || '').trim();
+const metaEnv = (import.meta as any).env || {};
+const supabaseUrl = (metaEnv.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env.SUPABASE_URL : '') || '').trim();
+const supabaseAnonKey = (metaEnv.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : '') || '').trim();
 
 function isValidHttpUrl(urlString: string): boolean {
   if (!urlString) return false;
@@ -20,45 +20,36 @@ export const isSupabaseConfigured = isValidHttpUrl(supabaseUrl) && !!supabaseAno
 
 console.log('[Supabase Debug] isSupabaseConfigured:', isSupabaseConfigured);
 
-export const supabase = isSupabaseConfigured
+export const supabaseClient = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Alias to maintain compatibility with existing components
-export const isFirebaseConfigured = isSupabaseConfigured;
+// Alias for compatibility
+export const supabase = supabaseClient;
 
-// Helper to generate a valid UUID v4
-export function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+export async function checkSupabaseConnection() {
+  if (!isSupabaseConfigured || !supabaseClient) {
+    throw new Error('Supabase não está configurado. Por favor, configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env.');
   }
-  // Fallback RFC4122 v4 UUID generator
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }
 
-// Row mapping helpers for flexible column naming (snake_case or camelCase)
+// Row mapping helpers
 function mapProductFromRow(row: any): Product {
   return {
-    id: row.id || generateUUID(),
+    id: row.id,
     name: row.name || '',
     brand: row.brand || '',
     category: row.category || 'outros',
     costPrice: Number(row.cost_price ?? row.costPrice ?? 0),
     sellPrice: Number(row.sell_price ?? row.sellPrice ?? 0),
     quantity: Number(row.quantity ?? 0),
-    minQuantity: row.min_quantity !== undefined ? Number(row.min_quantity) : (row.minQuantity !== undefined ? Number(row.minQuantity) : undefined),
+    minQuantity: row.min_quantity !== undefined ? Number(row.min_quantity) : (row.minQuantity !== undefined ? Number(row.minQuantity) : 2),
     photoUrl: row.photo_url ?? row.photoUrl ?? undefined,
   };
 }
 
-function mapProductToRow(product: Product) {
-  const validId = (product.id && String(product.id).trim() !== '') ? String(product.id) : generateUUID();
-  return {
-    id: validId,
+function mapProductToRow(product: Omit<Product, 'id'> & { id?: string }) {
+  const row: any = {
     name: product.name || '',
     brand: product.brand || '',
     category: product.category || 'outros',
@@ -68,27 +59,31 @@ function mapProductToRow(product: Product) {
     min_quantity: product.minQuantity ?? 2,
     photo_url: product.photoUrl || null,
   };
+  if (product.id) {
+    row.id = product.id;
+  }
+  return row;
 }
 
 function mapCustomerFromRow(row: any): Customer {
   return {
-    id: row.id || generateUUID(),
+    id: row.id,
     name: row.name || '',
-    phone: row.phone || '',
-    address: row.address || '',
-    notes: row.notes || undefined,
+    whatsapp: row.phone ?? row.whatsapp ?? '',
+    notes: row.notes || '',
   };
 }
 
-function mapCustomerToRow(customer: Customer) {
-  const validId = (customer.id && String(customer.id).trim() !== '') ? String(customer.id) : generateUUID();
-  return {
-    id: validId,
+function mapCustomerToRow(customer: Omit<Customer, 'id'> & { id?: string }) {
+  const row: any = {
     name: customer.name || '',
-    phone: customer.phone || '',
-    address: customer.address || '',
+    phone: customer.whatsapp || '',
     notes: customer.notes || null,
   };
+  if (customer.id) {
+    row.id = customer.id;
+  }
+  return row;
 }
 
 function mapSaleFromRow(row: any): Sale {
@@ -101,7 +96,7 @@ function mapSaleFromRow(row: any): Sale {
     }
   }
   return {
-    id: row.id || generateUUID(),
+    id: row.id,
     date: row.date || new Date().toISOString().split('T')[0],
     customerId: row.customer_id ?? row.customerId ?? 'venda_avulsa',
     customerName: row.customer_name ?? row.customerName ?? 'Cliente Avulso',
@@ -115,10 +110,8 @@ function mapSaleFromRow(row: any): Sale {
   };
 }
 
-function mapSaleToRow(sale: Sale) {
-  const validId = (sale.id && String(sale.id).trim() !== '') ? String(sale.id) : generateUUID();
-  return {
-    id: validId,
+function mapSaleToRow(sale: Omit<Sale, 'id'> & { id?: string }) {
+  const row: any = {
     date: sale.date || new Date().toISOString().split('T')[0],
     customer_id: sale.customerId || 'venda_avulsa',
     customer_name: sale.customerName || 'Cliente Avulso',
@@ -130,85 +123,77 @@ function mapSaleToRow(sale: Sale) {
     paid_date: sale.paidDate || null,
     due_date: sale.dueDate || null,
   };
+  if (sale.id) {
+    row.id = sale.id;
+  }
+  return row;
 }
 
 // Fetch Products
 export async function fetchProducts(): Promise<Product[]> {
-  if (!isSupabaseConfigured || !supabase) {
-    const local = localStorage.getItem('aura_products');
-    return local ? JSON.parse(local) : [];
-  }
-  const { data, error } = await supabase
+  await checkSupabaseConnection();
+  const { data, error } = await supabaseClient!
     .from('products')
     .select('*')
     .order('name', { ascending: true });
 
   if (error) {
     console.error('[Supabase Error] fetchProducts:', error);
-    const local = localStorage.getItem('aura_products');
-    return local ? JSON.parse(local) : [];
+    throw error;
   }
   return (data || []).map(mapProductFromRow);
 }
 
 // Fetch Customers
 export async function fetchCustomers(): Promise<Customer[]> {
-  if (!isSupabaseConfigured || !supabase) {
-    const local = localStorage.getItem('aura_customers');
-    return local ? JSON.parse(local) : [];
-  }
-  const { data, error } = await supabase
+  await checkSupabaseConnection();
+  const { data, error } = await supabaseClient!
     .from('customers')
     .select('*')
     .order('name', { ascending: true });
 
   if (error) {
     console.error('[Supabase Error] fetchCustomers:', error);
-    const local = localStorage.getItem('aura_customers');
-    return local ? JSON.parse(local) : [];
+    throw error;
   }
   return (data || []).map(mapCustomerFromRow);
 }
 
 // Fetch Sales
 export async function fetchSales(): Promise<Sale[]> {
-  if (!isSupabaseConfigured || !supabase) {
-    const local = localStorage.getItem('aura_sales');
-    return local ? JSON.parse(local) : [];
-  }
-  const { data, error } = await supabase
+  await checkSupabaseConnection();
+  const { data, error } = await supabaseClient!
     .from('sales')
     .select('*')
     .order('date', { ascending: false });
 
   if (error) {
     console.error('[Supabase Error] fetchSales:', error);
-    const local = localStorage.getItem('aura_sales');
-    return local ? JSON.parse(local) : [];
+    throw error;
   }
   return (data || []).map(mapSaleFromRow);
 }
 
-// Save Product
-export async function saveProductToSupabase(product: Product): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  if (!product.id || String(product.id).trim() === '') {
-    product.id = generateUUID();
-  }
-  const { error } = await supabase
+// Save Product (Upsert)
+export async function saveProductToSupabase(product: Product): Promise<Product> {
+  await checkSupabaseConnection();
+  const { data, error } = await supabaseClient!
     .from('products')
-    .upsert(mapProductToRow(product));
+    .upsert(mapProductToRow(product))
+    .select()
+    .single();
 
   if (error) {
     console.error('[Supabase Error] saveProductToSupabase:', error);
     throw error;
   }
+  return mapProductFromRow(data);
 }
 
 // Delete Product
 export async function deleteProductFromSupabase(id: string): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  const { error } = await supabase
+  await checkSupabaseConnection();
+  const { error } = await supabaseClient!
     .from('products')
     .delete()
     .eq('id', id);
@@ -219,26 +204,26 @@ export async function deleteProductFromSupabase(id: string): Promise<void> {
   }
 }
 
-// Save Customer
-export async function saveCustomerToSupabase(customer: Customer): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  if (!customer.id || String(customer.id).trim() === '') {
-    customer.id = generateUUID();
-  }
-  const { error } = await supabase
+// Save Customer (Upsert)
+export async function saveCustomerToSupabase(customer: Customer): Promise<Customer> {
+  await checkSupabaseConnection();
+  const { data, error } = await supabaseClient!
     .from('customers')
-    .upsert(mapCustomerToRow(customer));
+    .upsert(mapCustomerToRow(customer))
+    .select()
+    .single();
 
   if (error) {
     console.error('[Supabase Error] saveCustomerToSupabase:', error);
     throw error;
   }
+  return mapCustomerFromRow(data);
 }
 
 // Delete Customer
 export async function deleteCustomerFromSupabase(id: string): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  const { error } = await supabase
+  await checkSupabaseConnection();
+  const { error } = await supabaseClient!
     .from('customers')
     .delete()
     .eq('id', id);
@@ -249,26 +234,26 @@ export async function deleteCustomerFromSupabase(id: string): Promise<void> {
   }
 }
 
-// Save Sale
-export async function saveSaleToSupabase(sale: Sale): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  if (!sale.id || String(sale.id).trim() === '') {
-    sale.id = generateUUID();
-  }
-  const { error } = await supabase
+// Save Sale (Upsert)
+export async function saveSaleToSupabase(sale: Sale): Promise<Sale> {
+  await checkSupabaseConnection();
+  const { data, error } = await supabaseClient!
     .from('sales')
-    .upsert(mapSaleToRow(sale));
+    .upsert(mapSaleToRow(sale))
+    .select()
+    .single();
 
   if (error) {
     console.error('[Supabase Error] saveSaleToSupabase:', error);
     throw error;
   }
+  return mapSaleFromRow(data);
 }
 
 // Delete Sale
 export async function deleteSaleFromSupabase(id: string): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  const { error } = await supabase
+  await checkSupabaseConnection();
+  const { error } = await supabaseClient!
     .from('sales')
     .delete()
     .eq('id', id);
@@ -279,122 +264,72 @@ export async function deleteSaleFromSupabase(id: string): Promise<void> {
   }
 }
 
-// Aliases for Firebase function names so existing components continue working transparently
-export const saveProductToFirestore = saveProductToSupabase;
-export const deleteProductFromFirestore = deleteProductFromSupabase;
-export const saveCustomerToFirestore = saveCustomerToSupabase;
-export const deleteCustomerFromFirestore = deleteCustomerFromSupabase;
-export const saveSaleToFirestore = saveSaleToSupabase;
-export const deleteSaleFromFirestore = deleteSaleFromSupabase;
-
-// Realtime Subscriptions
+// Realtime Subscriptions via supabaseClient.channel().on().subscribe()
 export function subscribeToProducts(callback: (products: Product[]) => void) {
-  if (!isSupabaseConfigured || !supabase) return () => {};
+  if (!isSupabaseConfigured || !supabaseClient) return () => {};
 
-  fetchProducts().then(callback);
+  fetchProducts().then(callback).catch(console.error);
 
-  const channel = supabase
-    .channel('products_realtime')
+  const channel = supabaseClient
+    .channel('public:products')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
-      const prods = await fetchProducts();
-      callback(prods);
+      try {
+        const prods = await fetchProducts();
+        callback(prods);
+      } catch (e) {
+        console.error(e);
+      }
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    supabaseClient.removeChannel(channel);
   };
 }
 
 export function subscribeToCustomers(callback: (customers: Customer[]) => void) {
-  if (!isSupabaseConfigured || !supabase) return () => {};
+  if (!isSupabaseConfigured || !supabaseClient) return () => {};
 
-  fetchCustomers().then(callback);
+  fetchCustomers().then(callback).catch(console.error);
 
-  const channel = supabase
-    .channel('customers_realtime')
+  const channel = supabaseClient
+    .channel('public:customers')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, async () => {
-      const custs = await fetchCustomers();
-      callback(custs);
+      try {
+        const custs = await fetchCustomers();
+        callback(custs);
+      } catch (e) {
+        console.error(e);
+      }
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    supabaseClient.removeChannel(channel);
   };
 }
 
 export function subscribeToSales(callback: (sales: Sale[]) => void) {
-  if (!isSupabaseConfigured || !supabase) return () => {};
+  if (!isSupabaseConfigured || !supabaseClient) return () => {};
 
-  fetchSales().then(callback);
+  fetchSales().then(callback).catch(console.error);
 
-  const channel = supabase
-    .channel('sales_realtime')
+  const channel = supabaseClient
+    .channel('public:sales')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, async () => {
-      const sales = await fetchSales();
-      callback(sales);
+      try {
+        const sales = await fetchSales();
+        callback(sales);
+      } catch (e) {
+        console.error(e);
+      }
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    supabaseClient.removeChannel(channel);
   };
 }
-
-// Migrate Local/Server Data to Supabase
-export async function migrateLocalDataToSupabase(): Promise<boolean> {
-  if (!isSupabaseConfigured || !supabase) return false;
-
-  try {
-    const existingProducts = await fetchProducts();
-    if (existingProducts.length > 0) {
-      console.log('[Supabase] O banco de dados já contém dados. Pulando migração inicial.');
-      return true;
-    }
-
-    console.log('[Supabase] Iniciando migração para o Supabase...');
-
-    const localProds = localStorage.getItem('aura_products');
-    const localCusts = localStorage.getItem('aura_customers');
-    const localSales = localStorage.getItem('aura_sales');
-
-    let products: Product[] = localProds ? JSON.parse(localProds) : INITIAL_PRODUCTS;
-    let customers: Customer[] = localCusts ? JSON.parse(localCusts) : INITIAL_CUSTOMERS;
-    let sales: Sale[] = localSales ? JSON.parse(localSales) : INITIAL_SALES;
-
-    // Optional sync from server endpoint /api/data
-    try {
-      const res = await fetch('/api/data');
-      if (res.ok) {
-        const serverData = await res.json();
-        if (serverData.products?.length > products.length) products = serverData.products;
-        if (serverData.customers?.length > customers.length) customers = serverData.customers;
-        if (serverData.sales?.length > sales.length) sales = serverData.sales;
-      }
-    } catch (e) {
-      console.warn('[Supabase] Não foi possível ler /api/data:', e);
-    }
-
-    if (products.length > 0) {
-      await supabase.from('products').upsert(products.map(mapProductToRow));
-    }
-    if (customers.length > 0) {
-      await supabase.from('customers').upsert(customers.map(mapCustomerToRow));
-    }
-    if (sales.length > 0) {
-      await supabase.from('sales').upsert(sales.map(mapSaleToRow));
-    }
-
-    console.log('[Supabase] Migração inicial concluída com sucesso!');
-    return true;
-  } catch (error) {
-    console.error('[Supabase Error] migrateLocalDataToSupabase:', error);
-    return false;
-  }
-}
-
-export const migrateLocalDataToFirestore = migrateLocalDataToSupabase;
 
 // Reset Supabase DB with new or default data
 export async function resetSupabaseWithData(
@@ -402,52 +337,24 @@ export async function resetSupabaseWithData(
   initialCustomers: Customer[],
   initialSales: Sale[]
 ): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
+  await checkSupabaseConnection();
 
   try {
-    await supabase.from('products').delete().neq('id', '');
-    await supabase.from('customers').delete().neq('id', '');
-    await supabase.from('sales').delete().neq('id', '');
+    await supabaseClient!.from('products').delete().neq('id', '');
+    await supabaseClient!.from('customers').delete().neq('id', '');
+    await supabaseClient!.from('sales').delete().neq('id', '');
 
     if (initialProducts.length > 0) {
-      await supabase.from('products').upsert(initialProducts.map(mapProductToRow));
+      await supabaseClient!.from('products').upsert(initialProducts.map(mapProductToRow));
     }
     if (initialCustomers.length > 0) {
-      await supabase.from('customers').upsert(initialCustomers.map(mapCustomerToRow));
+      await supabaseClient!.from('customers').upsert(initialCustomers.map(mapCustomerToRow));
     }
     if (initialSales.length > 0) {
-      await supabase.from('sales').upsert(initialSales.map(mapSaleToRow));
+      await supabaseClient!.from('sales').upsert(initialSales.map(mapSaleToRow));
     }
   } catch (error) {
     console.error('[Supabase Error] resetSupabaseWithData:', error);
     throw error;
   }
 }
-
-export const resetFirestoreWithData = resetSupabaseWithData;
-
-// Sync state to Supabase
-export async function syncStateToSupabase(
-  products: Product[],
-  customers: Customer[],
-  sales: Sale[]
-): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-
-  try {
-    if (products.length > 0) {
-      await supabase.from('products').upsert(products.map(mapProductToRow));
-    }
-    if (customers.length > 0) {
-      await supabase.from('customers').upsert(customers.map(mapCustomerToRow));
-    }
-    if (sales.length > 0) {
-      await supabase.from('sales').upsert(sales.map(mapSaleToRow));
-    }
-  } catch (error) {
-    console.error('[Supabase Error] syncStateToSupabase:', error);
-    throw error;
-  }
-}
-
-export const syncStateToFirestore = syncStateToSupabase;
