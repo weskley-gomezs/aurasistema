@@ -90,6 +90,9 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
     return matchesSearch && matchesCategory && matchesGender && matchesBrand;
   });
 
+  const featuredProducts = filteredProducts.filter(p => p.featured);
+  const regularProducts = filteredProducts.filter(p => !p.featured);
+
   const getSlideWhatsAppLink = (slide: HeroSlide) => {
     if (!slide.linkMessage) return null;
     const phone = phoneParam || '5561992096078';
@@ -110,6 +113,95 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
     }
     // Fallback: Open general WhatsApp share sheet
     return `https://wa.me/?text=${encodeURIComponent(textMessage)}`;
+  };
+
+  const renderProductCard = (p: Product, index: number) => {
+    const isAvailable = p.quantity > 0;
+    
+    return (
+      <motion.div
+        key={p.id}
+        layout
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ delay: Math.min(0.15, index * 0.04), duration: 0.3 }}
+        className="bg-white rounded-3xl border border-gray-100/80 shadow-md hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden group"
+      >
+        {/* Image Area with luxury overlay effects */}
+        <div className="relative aspect-square w-full bg-gray-50 overflow-hidden border-b border-gray-50">
+          {p.photoUrl ? (
+            <img
+              src={p.photoUrl}
+              alt={p.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 cursor-pointer"
+              referrerPolicy="no-referrer"
+              onClick={() => setSelectedProductForImage(p)}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-gradient-to-br from-gray-50 to-gold-50/20">
+              <ImageIcon className="w-12 h-12 text-gray-200" />
+              <span className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-wider">Aura Dourada</span>
+            </div>
+          )}
+
+          {/* Stock availability label on photo */}
+          <div className="absolute top-3 left-3 flex flex-col gap-2">
+            <span className={`text-[9px] px-2.5 py-1.5 rounded-full font-black shadow-sm w-fit ${
+              isAvailable 
+                ? 'bg-emerald-500 text-white' 
+                : 'bg-amber-500 text-white'
+            }`}>
+              {isAvailable ? 'PRONTA ENTREGA' : 'POR ENCOMENDA'}
+            </span>
+          </div>
+
+          {/* Photo Click Zoom Button */}
+          {p.photoUrl && (
+            <button
+              onClick={() => setSelectedProductForImage(p)}
+              className="absolute bottom-3 right-3 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all"
+              title="Visualizar foto"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Meta data / Info */}
+        <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-rose-gold-500 uppercase tracking-widest">{p.brand || 'Aura'}</p>
+            <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2">{p.name || 'Produto'}</h3>
+          </div>
+
+          <div className="pt-2 border-t border-gray-50 flex items-end justify-between">
+            <div>
+              <p className="text-[9px] text-gray-400 font-bold uppercase">Preço</p>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-black text-emerald-600">
+                  R$ {(p.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                {p.originalPrice && (
+                  <p className="text-[10px] font-bold text-red-500 line-through">
+                    R$ {(p.originalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <a
+              href={getWhatsAppLink(p)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-emerald-500/15"
+            >
+              <MessageCircle className="w-4 h-4 fill-current" /> Pedir
+            </a>
+          </div>
+        </div>
+      </motion.div>
+    );
   };
 
   return (
@@ -327,103 +419,35 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
           </div>
         ) : (
           /* Grid list of catalog products */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 mt-6">
-            <AnimatePresence mode="popLayout">
-              {filteredProducts.map((p, index) => {
-                const isAvailable = p.quantity > 0;
-                
-                return (
-                  <motion.div
-                    key={p.id}
-                    layout
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: Math.min(0.15, index * 0.04), duration: 0.3 }}
-                    className="bg-white rounded-3xl border border-gray-100/80 shadow-md hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden group"
-                  >
-                    {/* Image Area with luxury overlay effects */}
-                    <div className="relative aspect-square w-full bg-gray-50 overflow-hidden border-b border-gray-50">
-                      {p.photoUrl ? (
-                        <img
-                          src={p.photoUrl}
-                          alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 cursor-pointer"
-                          referrerPolicy="no-referrer"
-                          onClick={() => setSelectedProductForImage(p)}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-gradient-to-br from-gray-50 to-gold-50/20">
-                          <ImageIcon className="w-12 h-12 text-gray-200" />
-                          <span className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-wider">Aura Dourada</span>
-                        </div>
-                      )}
+          <div className="space-y-12 mt-6">
+            {featuredProducts.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4 px-1">
+                  <Sparkles className="w-5 h-5 text-gold-500" />
+                  <h2 className="text-xl font-bold text-gray-900">Destaques</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                  <AnimatePresence mode="popLayout">
+                    {featuredProducts.map((p, index) => renderProductCard(p, index))}
+                  </AnimatePresence>
+                </div>
+              </section>
+            )}
 
-                      {/* Stock availability label on photo */}
-                      <div className="absolute top-3 left-3 flex flex-col gap-2">
-                        <span className={`text-[9px] px-2.5 py-1.5 rounded-full font-black shadow-sm w-fit ${
-                          isAvailable 
-                            ? 'bg-emerald-500 text-white' 
-                            : 'bg-amber-500 text-white'
-                        }`}>
-                          {isAvailable ? 'PRONTA ENTREGA' : 'POR ENCOMENDA'}
-                        </span>
-                        
-                        {p.featured && (
-                          <span className="bg-gold-500 text-white px-2.5 py-1.5 rounded-full text-[9px] font-black shadow-sm flex items-center gap-1 w-fit">
-                            <Sparkles className="w-2.5 h-2.5" /> DESTAQUE
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Photo Click Zoom Button */}
-                      {p.photoUrl && (
-                        <button
-                          onClick={() => setSelectedProductForImage(p)}
-                          className="absolute bottom-3 right-3 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                          title="Visualizar foto"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Meta data / Info */}
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-rose-gold-500 uppercase tracking-widest">{p.brand || 'Aura'}</p>
-                        <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2">{p.name || 'Produto'}</h3>
-                      </div>
-
-                      <div className="pt-2 border-t border-gray-50 flex items-end justify-between">
-                        <div>
-                          <p className="text-[9px] text-gray-400 font-bold uppercase">Preço</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-lg font-black text-gold-600">
-                              R$ {(p.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
-                            {p.originalPrice && (
-                              <p className="text-[10px] font-bold text-gray-400 line-through">
-                                R$ {(p.originalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <a
-                          href={getWhatsAppLink(p)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-emerald-500/15"
-                        >
-                          <MessageCircle className="w-4 h-4 fill-current" /> Pedir
-                        </a>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+            {regularProducts.length > 0 && (
+              <section>
+                 {featuredProducts.length > 0 && (
+                  <div className="flex items-center gap-2 mb-4 px-1">
+                    <h2 className="text-xl font-bold text-gray-900">Mais Produtos</h2>
+                  </div>
+                 )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                  <AnimatePresence mode="popLayout">
+                    {regularProducts.map((p, index) => renderProductCard(p, index))}
+                  </AnimatePresence>
+                </div>
+              </section>
+            )}
           </div>
         )}
       </main>
@@ -466,11 +490,11 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
                   <span className="text-[10px] font-bold text-rose-gold-500 uppercase tracking-widest">{selectedProductForImage.brand || 'Aura'}</span>
                   <h4 className="text-gray-900 font-bold text-base leading-snug">{selectedProductForImage.name || 'Produto'}</h4>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-lg font-black text-gold-600">
+                    <p className="text-lg font-black text-emerald-600">
                       R$ {(selectedProductForImage.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     {selectedProductForImage.originalPrice && (
-                      <p className="text-xs font-bold text-gray-400 line-through">
+                      <p className="text-xs font-bold text-red-500 line-through">
                         R$ {(selectedProductForImage.originalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     )}
