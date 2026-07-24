@@ -172,10 +172,6 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
                         className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-700"
                       />
                     </picture>
-                    <div className="absolute bottom-12 sm:bottom-4 right-4 bg-emerald-600/90 hover:bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-md transition-all group-hover:scale-105 z-10">
-                      <MessageCircle className="w-4 h-4 text-white" />
-                      <span>Pedir no WhatsApp</span>
-                    </div>
                   </a>
                 ) : (
                   <picture className="w-full h-full block">
@@ -207,21 +203,6 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
             >
               <ChevronRight className="w-5 h-5 text-gold-300" />
             </button>
-
-            {/* Slide Indicators Dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15">
-              {HERO_SLIDES.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setCurrentSlide(idx)}
-                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                    currentSlide === idx ? 'w-7 bg-gold-400' : 'w-2.5 bg-white/40 hover:bg-white/80'
-                  }`}
-                  aria-label={`Ir para slide ${idx + 1}`}
-                />
-              ))}
-            </div>
           </div>
         </div>
       </header>
