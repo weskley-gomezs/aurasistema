@@ -122,9 +122,11 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
   const [brand, setBrand] = useState('');
   const [costPrice, setCostPrice] = useState('');
   const [sellPrice, setSellPrice] = useState('');
+  const [originalPrice, setOriginalPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [minQuantity, setMinQuantity] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [featured, setFeatured] = useState(false);
 
   // Camera and File Upload States
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -225,9 +227,11 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     setBrand('');
     setCostPrice('');
     setSellPrice('');
+    setOriginalPrice('');
     setQuantity('');
     setMinQuantity('2'); // Default minimum
     setPhotoUrl('');
+    setFeatured(false);
     setIsFormOpen(true);
   };
 
@@ -240,9 +244,11 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     setBrand(p.brand);
     setCostPrice(p.costPrice.toString());
     setSellPrice(p.sellPrice.toString());
+    setOriginalPrice(p.originalPrice ? p.originalPrice.toString() : '');
     setQuantity(p.quantity.toString());
     setMinQuantity(p.minQuantity.toString());
     setPhotoUrl(p.photoUrl || '');
+    setFeatured(p.featured || false);
     setIsFormOpen(true);
   };
 
@@ -261,9 +267,11 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
       brand,
       costPrice: parseFloat(costPrice),
       sellPrice: parseFloat(sellPrice),
+      originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
       quantity: parseInt(quantity),
       minQuantity: parseInt(minQuantity),
-      photoUrl: photoUrl.trim() || undefined
+      photoUrl: photoUrl.trim() || undefined,
+      featured
     };
 
     if (editingProduct) {
@@ -520,10 +528,17 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                     </div>
                   )}
 
-                  {/* Badge de categoria */}
-                  <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-xs text-gold-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-xs border border-gold-100">
-                    {CATEGORY_LABELS[product.category]}
-                  </span>
+                  {/* Badge de categoria e destaque */}
+                  <div className="absolute top-3 left-3 flex flex-col gap-2">
+                    <span className="bg-white/90 backdrop-blur-xs text-gold-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-xs border border-gold-100 w-fit">
+                      {CATEGORY_LABELS[product.category]}
+                    </span>
+                    {product.featured && (
+                      <span className="bg-gold-500 text-white px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-xs flex items-center gap-1 w-fit">
+                        <Sparkles className="w-3 h-3" /> Destaque
+                      </span>
+                    )}
+                  </div>
 
                   {/* Alerta de estoque baixo ou esgotado */}
                   {isSoldOut ? (
@@ -548,7 +563,12 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                   <div className="grid grid-cols-2 gap-2 bg-gold-50/40 p-2.5 rounded-xl border border-gold-100/30">
                     <div>
                       <span className="text-[10px] font-medium text-gray-500 block uppercase">Preço Venda</span>
-                      <span className="text-sm font-extrabold text-gray-900">R$ {product.sellPrice.toFixed(2)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-extrabold text-gray-900">R$ {product.sellPrice.toFixed(2)}</span>
+                        {product.originalPrice && (
+                          <span className="text-[10px] font-semibold text-gray-400 line-through">R$ {product.originalPrice.toFixed(2)}</span>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <span className="text-[10px] font-medium text-gray-500 block uppercase">Preço Custo</span>
@@ -741,6 +761,35 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                       id="product-input-sell"
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:bg-white text-gray-900"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Preço Original (Corte) */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700 uppercase">Preço Original (opcional)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 299.90"
+                      value={originalPrice}
+                      onChange={(e) => setOriginalPrice(e.target.value)}
+                      id="product-input-original-price"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:bg-white text-gray-900"
+                    />
+                  </div>
+                  
+                  {/* Destaque (Promoção / Catálogo) */}
+                  <div className="space-y-1 flex flex-col justify-end">
+                    <label className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={featured}
+                        onChange={(e) => setFeatured(e.target.checked)}
+                        className="w-5 h-5 text-gold-500 rounded border-gray-300 focus:ring-gold-500"
+                      />
+                      <span className="text-sm font-bold text-gray-700 uppercase mt-0.5">Destaque</span>
+                    </label>
                   </div>
                 </div>
 

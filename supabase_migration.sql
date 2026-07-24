@@ -1,0 +1,2 @@
+ALTER TABLE products ADD COLUMN featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE products ADD COLUMN original_price NUMERIC;

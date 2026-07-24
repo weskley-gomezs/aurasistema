@@ -43,9 +43,11 @@ function mapProductFromRow(row: any): Product {
     gender: row.gender || 'todos',
     costPrice: Number(row.cost_price ?? row.costPrice ?? 0),
     sellPrice: Number(row.sell_price ?? row.sellPrice ?? 0),
+    originalPrice: row.original_price != null ? Number(row.original_price) : undefined,
     quantity: Number(row.quantity ?? 0),
     minQuantity: row.min_quantity !== undefined ? Number(row.min_quantity) : (row.minQuantity !== undefined ? Number(row.minQuantity) : 2),
     photoUrl: row.photo_url ?? row.photoUrl ?? undefined,
+    featured: row.featured ?? false,
   };
 }
 
@@ -57,9 +59,11 @@ function mapProductToRow(product: Omit<Product, 'id'> & { id?: string }) {
     gender: product.gender || 'todos',
     cost_price: product.costPrice ?? 0,
     sell_price: product.sellPrice ?? 0,
+    original_price: product.originalPrice ?? null,
     quantity: product.quantity ?? 0,
     min_quantity: product.minQuantity ?? 2,
     photo_url: product.photoUrl || null,
+    featured: product.featured ?? false,
   };
   if (product.id) {
     row.id = product.id;

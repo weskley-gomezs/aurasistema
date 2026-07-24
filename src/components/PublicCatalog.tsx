@@ -360,13 +360,21 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
                       )}
 
                       {/* Stock availability label on photo */}
-                      <span className={`absolute top-3 left-3 text-[9px] px-2.5 py-1.5 rounded-full font-black shadow-sm ${
-                        isAvailable 
-                          ? 'bg-emerald-500 text-white' 
-                          : 'bg-amber-500 text-white'
-                      }`}>
-                        {isAvailable ? 'PRONTA ENTREGA' : 'POR ENCOMENDA'}
-                      </span>
+                      <div className="absolute top-3 left-3 flex flex-col gap-2">
+                        <span className={`text-[9px] px-2.5 py-1.5 rounded-full font-black shadow-sm w-fit ${
+                          isAvailable 
+                            ? 'bg-emerald-500 text-white' 
+                            : 'bg-amber-500 text-white'
+                        }`}>
+                          {isAvailable ? 'PRONTA ENTREGA' : 'POR ENCOMENDA'}
+                        </span>
+                        
+                        {p.featured && (
+                          <span className="bg-gold-500 text-white px-2.5 py-1.5 rounded-full text-[9px] font-black shadow-sm flex items-center gap-1 w-fit">
+                            <Sparkles className="w-2.5 h-2.5" /> DESTAQUE
+                          </span>
+                        )}
+                      </div>
 
                       {/* Photo Click Zoom Button */}
                       {p.photoUrl && (
@@ -390,9 +398,16 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
                       <div className="pt-2 border-t border-gray-50 flex items-end justify-between">
                         <div>
                           <p className="text-[9px] text-gray-400 font-bold uppercase">Preço</p>
-                          <p className="text-lg font-black text-gold-600">
-                            R$ {(p.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-lg font-black text-gold-600">
+                              R$ {(p.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                            {p.originalPrice && (
+                              <p className="text-[10px] font-bold text-gray-400 line-through">
+                                R$ {(p.originalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         
                         <a
@@ -450,9 +465,16 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
                 <div>
                   <span className="text-[10px] font-bold text-rose-gold-500 uppercase tracking-widest">{selectedProductForImage.brand || 'Aura'}</span>
                   <h4 className="text-gray-900 font-bold text-base leading-snug">{selectedProductForImage.name || 'Produto'}</h4>
-                  <p className="text-lg font-black text-gold-600 mt-1">
-                    R$ {(selectedProductForImage.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-lg font-black text-gold-600">
+                      R$ {(selectedProductForImage.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    {selectedProductForImage.originalPrice && (
+                      <p className="text-xs font-bold text-gray-400 line-through">
+                        R$ {(selectedProductForImage.originalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button

@@ -12,9 +12,11 @@ export interface Product {
   brand: string;
   costPrice: number;
   sellPrice: number;
+  originalPrice?: number;
   quantity: number;
   minQuantity: number;
   photoUrl?: string;
+  featured?: boolean;
 }
 
 export interface SaleItem {
