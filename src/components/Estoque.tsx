@@ -20,7 +20,8 @@ const CATEGORY_LABELS: Record<Category, string> = {
 
 const GENDER_LABELS: Record<Gender, string> = {
   masculino: 'Masculino',
-  feminino: 'Feminino'
+  feminino: 'Feminino',
+  todos: 'Todos'
 };
 
 export default function Estoque({ products, onAddProduct, onEditProduct, onDeleteProduct }: EstoqueProps) {
@@ -117,7 +118,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
   // Input states
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Category>('perfume');
-  const [gender, setGender] = useState<Gender>('feminino');
+  const [gender, setGender] = useState<Gender>('todos');
   const [brand, setBrand] = useState('');
   const [costPrice, setCostPrice] = useState('');
   const [sellPrice, setSellPrice] = useState('');
@@ -220,7 +221,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     setEditingProduct(null);
     setName('');
     setCategory('perfume');
-    setGender('feminino');
+    setGender('todos');
     setBrand('');
     setCostPrice('');
     setSellPrice('');
@@ -235,7 +236,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     setEditingProduct(p);
     setName(p.name);
     setCategory(p.category);
-    setGender(p.gender || 'feminino');
+    setGender(p.gender || 'todos');
     setBrand(p.brand);
     setCostPrice(p.costPrice.toString());
     setSellPrice(p.sellPrice.toString());
@@ -297,7 +298,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
                           p.brand.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === 'todos' || p.category === selectedCategory;
-    const matchesGender = selectedGender === 'todos' || (p.gender || 'feminino') === selectedGender;
+    const matchesGender = selectedGender === 'todos' || (p.gender || 'todos') === selectedGender;
     const matchesBrand = selectedBrand === 'todas' || p.brand.toLowerCase() === selectedBrand.toLowerCase();
     
     let matchesStatus = true;
@@ -684,6 +685,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                       id="product-input-gender"
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:bg-white text-gray-900"
                     >
+                      <option value="todos">Todos</option>
                       <option value="feminino">Feminino</option>
                       <option value="masculino">Masculino</option>
                     </select>

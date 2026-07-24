@@ -78,7 +78,7 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
     const name = p.name || '';
     const brand = p.brand || '';
     const category = p.category || 'outros';
-    const gender = p.gender || 'feminino';
+    const gender = p.gender || 'todos';
 
     const matchesSearch = 
       name.toLowerCase().includes((searchTerm || '').toLowerCase()) ||

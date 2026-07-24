@@ -1,6 +1,6 @@
 export type Category = 'perfume' | 'creme' | 'kit' | 'outros';
 
-export type Gender = 'masculino' | 'feminino';
+export type Gender = 'masculino' | 'feminino' | 'todos';
 
 export type PaymentMethod = 'Pix' | 'Dinheiro' | 'Cartão' | 'Fiado';
 
