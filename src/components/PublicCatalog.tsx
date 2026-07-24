@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category } from '../types';
-import { Search, MessageCircle, Sparkles, Image as ImageIcon, Heart, Eye, ArrowLeft, Loader2, ShoppingCart, RefreshCw, X, ShoppingBag } from 'lucide-react';
+import { Search, MessageCircle, Sparkles, Image as ImageIcon, Heart, Eye, ArrowLeft, Loader2, ShoppingCart, RefreshCw, X, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PublicCatalogProps {
   products: Product[];
   isLoading: boolean;
 }
+
+const HERO_SLIDES = [
+  'https://i.imgur.com/WzfV5HP.png',
+  'https://i.imgur.com/H0OIeiE.png'
+];
 
 const CATEGORY_LABELS: Record<Category, string> = {
   perfume: 'Perfumes',
@@ -26,6 +31,16 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'todos'>('todos');
   const [selectedProductForImage, setSelectedProductForImage] = useState<Product | null>(null);
+
+  // Hero banner slideshow state (8s auto-transition)
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const slideTimer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % HERO_SLIDES.length);
+    }, 8000);
+    return () => clearInterval(slideTimer);
+  }, []);
 
   // Get seller's phone number from URL query parameter 'phone' or hash parameter
   const [phoneParam, setPhoneParam] = useState<string>('');
@@ -107,6 +122,55 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
           <p className="text-gray-400 text-xs max-w-md mt-3 leading-relaxed">
             Seja bem-vinda(o)! Navegue pelas nossas melhores fragrâncias e cosméticos exclusivos. Clique para fazer seu pedido pelo WhatsApp.
           </p>
+
+          {/* Hero Banner Slideshow (8-second fade animation) */}
+          <div className="w-full max-w-3xl mt-6 relative rounded-2xl md:rounded-3xl overflow-hidden border border-gold-500/30 shadow-2xl bg-black/40 aspect-[21/9] sm:aspect-[2.5/1]">
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={currentSlide}
+                src={HERO_SLIDES[currentSlide]}
+                alt={`Banner Aura Dourada Slide ${currentSlide + 1}`}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 1.2, ease: "easeInOut" }}
+                className="w-full h-full object-cover object-center"
+              />
+            </AnimatePresence>
+
+            {/* Slide Navigation Buttons */}
+            <button
+              type="button"
+              onClick={() => setCurrentSlide(prev => (prev === 0 ? HERO_SLIDES.length - 1 : prev - 1))}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white/80 hover:text-white p-2 rounded-full backdrop-blur-md border border-white/10 transition-all cursor-pointer opacity-80 hover:opacity-100"
+              aria-label="Slide anterior"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentSlide(prev => (prev + 1) % HERO_SLIDES.length)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white/80 hover:text-white p-2 rounded-full backdrop-blur-md border border-white/10 transition-all cursor-pointer opacity-80 hover:opacity-100"
+              aria-label="Próximo slide"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            {/* Slide Indicators Dots */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+              {HERO_SLIDES.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`h-2 rounded-full transition-all cursor-pointer ${
+                    currentSlide === idx ? 'w-6 bg-gold-400' : 'w-2 bg-white/40 hover:bg-white/80'
+                  }`}
+                  aria-label={`Ir para slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </header>
 
