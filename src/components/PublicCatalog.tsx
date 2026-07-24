@@ -92,7 +92,7 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gold-400 via-rose-gold-400 to-gold-600"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(197,160,89,0.1),transparent_40%)] pointer-events-none"></div>
 
-        <div className="max-w-4xl mx-auto px-6 py-10 text-center flex flex-col items-center">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-8 text-center flex flex-col items-center">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -124,16 +124,16 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
           </p>
 
           {/* Hero Banner Slideshow (8-second fade animation) */}
-          <div className="w-full max-w-3xl mt-6 relative rounded-2xl md:rounded-3xl overflow-hidden border border-gold-500/30 shadow-2xl bg-black/40 aspect-[21/9] sm:aspect-[2.5/1]">
+          <div className="w-full max-w-6xl mt-6 relative rounded-2xl md:rounded-3xl overflow-hidden border border-gold-500/30 shadow-2xl bg-black/40 aspect-[21/9] sm:aspect-[2.8/1] md:aspect-[3/1]">
             <AnimatePresence mode="wait">
               <motion.img
                 key={currentSlide}
                 src={HERO_SLIDES[currentSlide]}
                 alt={`Banner Aura Dourada Slide ${currentSlide + 1}`}
-                initial={{ opacity: 0, scale: 0.98 }}
+                initial={{ opacity: 0, scale: 0.99 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.02 }}
-                transition={{ duration: 1.2, ease: "easeInOut" }}
+                exit={{ opacity: 0, scale: 1.01 }}
+                transition={{ duration: 1.0, ease: "easeInOut" }}
                 className="w-full h-full object-cover object-center"
               />
             </AnimatePresence>
@@ -142,29 +142,29 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
             <button
               type="button"
               onClick={() => setCurrentSlide(prev => (prev === 0 ? HERO_SLIDES.length - 1 : prev - 1))}
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white/80 hover:text-white p-2 rounded-full backdrop-blur-md border border-white/10 transition-all cursor-pointer opacity-80 hover:opacity-100"
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white/90 hover:text-white p-2.5 rounded-full backdrop-blur-md border border-white/20 transition-all cursor-pointer opacity-90 hover:opacity-100 z-10"
               aria-label="Slide anterior"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-5 h-5 text-gold-300" />
             </button>
             <button
               type="button"
               onClick={() => setCurrentSlide(prev => (prev + 1) % HERO_SLIDES.length)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white/80 hover:text-white p-2 rounded-full backdrop-blur-md border border-white/10 transition-all cursor-pointer opacity-80 hover:opacity-100"
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white/90 hover:text-white p-2.5 rounded-full backdrop-blur-md border border-white/20 transition-all cursor-pointer opacity-90 hover:opacity-100 z-10"
               aria-label="Próximo slide"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5 text-gold-300" />
             </button>
 
             {/* Slide Indicators Dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15">
               {HERO_SLIDES.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setCurrentSlide(idx)}
-                  className={`h-2 rounded-full transition-all cursor-pointer ${
-                    currentSlide === idx ? 'w-6 bg-gold-400' : 'w-2 bg-white/40 hover:bg-white/80'
+                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                    currentSlide === idx ? 'w-7 bg-gold-400' : 'w-2.5 bg-white/40 hover:bg-white/80'
                   }`}
                   aria-label={`Ir para slide ${idx + 1}`}
                 />
