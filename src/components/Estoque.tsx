@@ -1,5 +1,5 @@
 import React, { useState, FormEvent, useRef, useEffect, ChangeEvent } from 'react';
-import { Product, Category } from '../types';
+import { Product, Category, Gender } from '../types';
 import { Search, Plus, AlertCircle, XCircle, Edit, Trash2, ArrowUpRight, Folder, Package, DollarSign, Image as ImageIcon, X, Camera, Upload, BookOpen, Copy, Check, Share2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateCatalogPDF } from '../utils/pdfGenerator';
@@ -18,9 +18,16 @@ const CATEGORY_LABELS: Record<Category, string> = {
   outros: 'Outros cosméticos'
 };
 
+const GENDER_LABELS: Record<Gender, string> = {
+  masculino: 'Masculino',
+  feminino: 'Feminino'
+};
+
 export default function Estoque({ products, onAddProduct, onEditProduct, onDeleteProduct }: EstoqueProps) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'todos'>('todos');
+  const [selectedGender, setSelectedGender] = useState<Gender | 'todos'>('todos');
+  const [selectedBrand, setSelectedBrand] = useState<string>('todas');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'baixo' | 'disponivel' | 'esgotado'>('todos');
   
   // Catalog Modal state
@@ -110,6 +117,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
   // Input states
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Category>('perfume');
+  const [gender, setGender] = useState<Gender>('feminino');
   const [brand, setBrand] = useState('');
   const [costPrice, setCostPrice] = useState('');
   const [sellPrice, setSellPrice] = useState('');
@@ -212,6 +220,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     setEditingProduct(null);
     setName('');
     setCategory('perfume');
+    setGender('feminino');
     setBrand('');
     setCostPrice('');
     setSellPrice('');
@@ -226,6 +235,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     setEditingProduct(p);
     setName(p.name);
     setCategory(p.category);
+    setGender(p.gender || 'feminino');
     setBrand(p.brand);
     setCostPrice(p.costPrice.toString());
     setSellPrice(p.sellPrice.toString());
@@ -246,6 +256,7 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     const productData = {
       name,
       category,
+      gender,
       brand,
       costPrice: parseFloat(costPrice),
       sellPrice: parseFloat(sellPrice),
@@ -286,18 +297,22 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
                           p.brand.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === 'todos' || p.category === selectedCategory;
+    const matchesGender = selectedGender === 'todos' || (p.gender || 'feminino') === selectedGender;
+    const matchesBrand = selectedBrand === 'todas' || p.brand.toLowerCase() === selectedBrand.toLowerCase();
     
     let matchesStatus = true;
     if (statusFilter === 'baixo') matchesStatus = p.quantity <= p.minQuantity;
     else if (statusFilter === 'disponivel') matchesStatus = p.quantity > 0;
     else if (statusFilter === 'esgotado') matchesStatus = p.quantity === 0;
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesCategory && matchesGender && matchesBrand && matchesStatus;
   });
 
   const handleClearFilters = () => {
     setSearch('');
     setSelectedCategory('todos');
+    setSelectedGender('todos');
+    setSelectedBrand('todas');
     setStatusFilter('todos');
   };
 
@@ -372,6 +387,51 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
               </button>
             );
           })}
+        </div>
+
+        {/* Filtro de Gênero e Marca */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-t border-gray-50 pt-3">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+            <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-wider shrink-0">Público:</span>
+            <button
+              onClick={() => setSelectedGender('todos')}
+              className={`px-3 py-1.5 text-[10px] md:text-xs rounded-lg font-bold border transition-all whitespace-nowrap ${
+                selectedGender === 'todos' ? 'bg-gold-500 text-white border-gold-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setSelectedGender('feminino')}
+              className={`px-3 py-1.5 text-[10px] md:text-xs rounded-lg font-bold border transition-all whitespace-nowrap ${
+                selectedGender === 'feminino' ? 'bg-gold-500 text-white border-gold-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              Feminino
+            </button>
+            <button
+              onClick={() => setSelectedGender('masculino')}
+              className={`px-3 py-1.5 text-[10px] md:text-xs rounded-lg font-bold border transition-all whitespace-nowrap ${
+                selectedGender === 'masculino' ? 'bg-gold-500 text-white border-gold-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              Masculino
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-wider shrink-0">Marca:</span>
+            <select
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-gold-500"
+            >
+              <option value="todas">Todas as Marcas</option>
+              {Array.from(new Set(products.map(p => p.brand))).filter(Boolean).sort().map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Filtros rápidos adicionais */}
@@ -615,19 +675,39 @@ export default function Estoque({ products, onAddProduct, onEditProduct, onDelet
                     </select>
                   </div>
 
-                  {/* Marca */}
+                  {/* Gênero */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-700 uppercase">Marca *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Chanel, Carolina Herrera"
-                      value={brand}
-                      onChange={(e) => setBrand(e.target.value)}
-                      id="product-input-brand"
+                    <label className="text-xs font-bold text-gray-700 uppercase">Gênero / Público *</label>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value as Gender)}
+                      id="product-input-gender"
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:bg-white text-gray-900"
-                    />
+                    >
+                      <option value="feminino">Feminino</option>
+                      <option value="masculino">Masculino</option>
+                    </select>
                   </div>
+                </div>
+
+                {/* Marca */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 uppercase">Marca *</label>
+                  <input
+                    type="text"
+                    required
+                    list="modal-brands-list"
+                    placeholder="Ex: Natura, Avon, Chanel, Eudora"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    id="product-input-brand"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:bg-white text-gray-900"
+                  />
+                  <datalist id="modal-brands-list">
+                    {Array.from(new Set(products.map(p => p.brand))).filter(Boolean).map(b => (
+                      <option key={b} value={b} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

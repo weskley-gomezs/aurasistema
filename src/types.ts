@@ -1,11 +1,14 @@
 export type Category = 'perfume' | 'creme' | 'kit' | 'outros';
 
+export type Gender = 'masculino' | 'feminino';
+
 export type PaymentMethod = 'Pix' | 'Dinheiro' | 'Cartão' | 'Fiado';
 
 export interface Product {
   id: string;
   name: string;
   category: Category;
+  gender?: Gender;
   brand: string;
   costPrice: number;
   sellPrice: number;

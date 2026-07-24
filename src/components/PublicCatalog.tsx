@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Product, Category } from '../types';
+import { Product, Category, Gender } from '../types';
 import { Search, MessageCircle, Sparkles, Image as ImageIcon, Heart, Eye, ArrowLeft, Loader2, ShoppingCart, RefreshCw, X, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -46,6 +46,8 @@ const CATEGORY_EMOJIS: Record<Category, string> = {
 export default function PublicCatalog({ products, isLoading }: PublicCatalogProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'todos'>('todos');
+  const [selectedGender, setSelectedGender] = useState<Gender | 'todos'>('todos');
+  const [selectedBrand, setSelectedBrand] = useState<string>('todas');
   const [selectedProductForImage, setSelectedProductForImage] = useState<Product | null>(null);
 
   // Hero banner slideshow state (8s auto-transition)
@@ -70,18 +72,22 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
     setPhoneParam(cleaned);
   }, []);
 
-  // Filter products based on search & category
+  // Filter products based on search, category, gender & brand
   const filteredProducts = (products || []).filter(p => {
     if (!p) return false;
     const name = p.name || '';
     const brand = p.brand || '';
     const category = p.category || 'outros';
+    const gender = p.gender || 'feminino';
 
     const matchesSearch = 
       name.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
       brand.toLowerCase().includes((searchTerm || '').toLowerCase());
     const matchesCategory = selectedCategory === 'todos' || category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesGender = selectedGender === 'todos' || gender === selectedGender;
+    const matchesBrand = selectedBrand === 'todas' || brand.toLowerCase() === selectedBrand.toLowerCase();
+
+    return matchesSearch && matchesCategory && matchesGender && matchesBrand;
   });
 
   const getSlideWhatsAppLink = (slide: HeroSlide) => {
@@ -249,6 +255,51 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
                 <span>{CATEGORY_LABELS[cat]}</span>
               </button>
             ))}
+          </div>
+
+          {/* Gender & Brand Filter Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0">Público:</span>
+              <button
+                onClick={() => setSelectedGender('todos')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                  selectedGender === 'todos' ? 'bg-gold-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setSelectedGender('feminino')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                  selectedGender === 'feminino' ? 'bg-gold-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Feminino
+              </button>
+              <button
+                onClick={() => setSelectedGender('masculino')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                  selectedGender === 'masculino' ? 'bg-gold-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Masculino
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0">Marca:</span>
+              <select
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-gold-500"
+              >
+                <option value="todas">Todas as Marcas</option>
+                {Array.from(new Set(products.map(p => p.brand))).filter(Boolean).sort().map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
