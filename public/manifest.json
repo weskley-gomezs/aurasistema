@@ -1,0 +1,23 @@
+{
+  "name": "Aura Dourada Sistema",
+  "short_name": "Aura Dourada",
+  "description": "Sistema de Gestão & Vendas - Aura Dourada",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#fb7185",
+  "icons": [
+    {
+      "src": "https://i.imgur.com/fM892tI.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.imgur.com/fM892tI.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
