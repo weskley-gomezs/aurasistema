@@ -506,7 +506,7 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
-        <img src="https://i.imgur.com/XAhbi19.png" alt="Logo Aura Dourada" className="w-20 h-20 mb-4 object-contain animate-pulse" />
+        <img src="https://i.imgur.com/2uqM34W.png" alt="Logo Aura Dourada" className="w-20 h-20 mb-4 object-contain animate-pulse" />
         <h2 className="text-xl font-serif text-white mb-1">Verificando autenticação...</h2>
         <p className="text-xs text-amber-200/60">Aura Dourada Sistema</p>
       </div>
@@ -521,7 +521,7 @@ export default function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-        <img src="https://i.imgur.com/XAhbi19.png" alt="Logo Aura Dourada" className="w-20 h-20 mb-4 object-contain" />
+        <img src="https://i.imgur.com/2uqM34W.png" alt="Logo Aura Dourada" className="w-20 h-20 mb-4 object-contain" />
         <h2 className="text-xl font-serif text-gray-900 mb-1">Carregando dados do Supabase...</h2>
         <p className="text-xs text-gray-400">Aura Dourada Sistema</p>
       </div>
@@ -696,7 +696,7 @@ export default function App() {
         <div className="space-y-8">
           {/* Brand Logo & Name */}
           <div className="mb-10 text-center border-b border-gray-200 pb-4 flex flex-col items-center">
-            <img src="https://i.imgur.com/XAhbi19.png" alt="Logo" className="w-16 h-16 mb-2 object-contain" />
+            <img src="https://i.imgur.com/2uqM34W.png" alt="Logo" className="w-16 h-16 mb-2 object-contain" />
             <h1 className="text-xl font-serif italic text-gold-500">Aura Dourada Sistema</h1>
             <p className="text-[10px] uppercase tracking-widest mt-1 opacity-60 text-gray-500">Gestão de Cosméticos</p>
             <div className="flex flex-col items-center gap-1.5 mt-3">

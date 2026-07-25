@@ -217,12 +217,13 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="mb-4"
+            className="mb-3 relative inline-flex items-center justify-center"
           >
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-pink-400/20 rounded-full blur-xl scale-125 -z-10" />
             <img 
-              src="https://i.imgur.com/XAhbi19.png" 
+              src="https://i.imgur.com/2uqM34W.png" 
               alt="Aura Dourada Logo" 
-              className="w-24 h-24 object-contain filter drop-shadow-[0_4px_12px_rgba(197,160,89,0.3)] bg-white/5 p-2 rounded-full border border-gold-500/20" 
+              className="w-24 h-24 object-contain filter drop-shadow-[0_8px_16px_rgba(244,114,182,0.3)] hover:scale-105 transition-transform duration-300" 
             />
           </motion.div>
 

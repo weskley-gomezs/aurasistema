@@ -169,7 +169,7 @@ export default function Dashboard({
             <p className="text-[10px] md:text-sm text-gray-400">Confira o resumo do seu negócio hoje.</p>
           </div>
           <div className="md:hidden w-12 h-12 bg-white rounded-full border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-            <img src="https://i.imgur.com/XAhbi19.png" alt="Logo" className="w-full h-full object-contain" />
+            <img src="https://i.imgur.com/2uqM34W.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
         </div>
         
@@ -226,7 +226,7 @@ export default function Dashboard({
               </p>
             </div>
             <div className="w-10 h-10 bg-white rounded-full border-2 border-white shadow-sm flex items-center justify-center overflow-hidden">
-              <img src="https://i.imgur.com/XAhbi19.png" alt="Logo" className="w-full h-full object-contain" />
+              <img src="https://i.imgur.com/2uqM34W.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
           </div>
         </div>
