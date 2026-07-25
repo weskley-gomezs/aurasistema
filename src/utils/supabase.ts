@@ -33,6 +33,30 @@ export async function checkSupabaseConnection() {
   }
 }
 
+// Auth Helpers
+export async function getCurrentSession() {
+  if (!isSupabaseConfigured || !supabaseClient) return null;
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  if (error) console.error('[Supabase Auth Error] getSession:', error);
+  return session;
+}
+
+export async function getCurrentUser() {
+  if (!isSupabaseConfigured || !supabaseClient) return null;
+  const { data: { user }, error } = await supabaseClient.auth.getUser();
+  if (error) console.error('[Supabase Auth Error] getUser:', error);
+  return user;
+}
+
+export async function signOutUser() {
+  if (!isSupabaseConfigured || !supabaseClient) return;
+  const { error } = await supabaseClient.auth.signOut();
+  if (error) {
+    console.error('[Supabase Auth Error] signOut:', error);
+    throw error;
+  }
+}
+
 // Row mapping helpers
 function mapProductFromRow(row: any): Product {
   return {

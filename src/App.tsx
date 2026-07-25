@@ -7,6 +7,7 @@ import Vendas from './components/Vendas';
 import Clientes from './components/Clientes';
 import Fiado from './components/Fiado';
 import PublicCatalog from './components/PublicCatalog';
+import Auth from './components/Auth';
 import { 
   isSupabaseConfigured,
   supabaseClient,
@@ -22,7 +23,8 @@ import {
   resetSupabaseWithData,
   subscribeToProducts,
   subscribeToCustomers,
-  subscribeToSales
+  subscribeToSales,
+  signOutUser
 } from './utils/supabase';
 import { 
   Sparkles, 
@@ -39,7 +41,9 @@ import {
   AlertCircle,
   Wifi,
   WifiOff,
-  Database
+  Database,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -51,6 +55,10 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+
+  // Auth States
+  const [session, setSession] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   // Loading and feedback states
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -66,6 +74,28 @@ export default function App() {
     const view = params.get('view') || '';
     const isCat = view === 'catalogo' || view === 'catalog' || params.has('catalogo') || params.has('catalog');
     setIsPublicCatalog(isCat);
+  }, []);
+
+  // Supabase Auth Session Listener
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabaseClient) {
+      setAuthLoading(false);
+      return;
+    }
+
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // 1. Initial Load from Supabase
@@ -437,6 +467,10 @@ export default function App() {
     },
   ];
 
+  if (isPublicCatalog) {
+    return <PublicCatalog products={products} isLoading={isLoading} />;
+  }
+
   // If Supabase is NOT configured, show clear configuration error screen
   if (!isSupabaseConfigured) {
     return (
@@ -469,8 +503,19 @@ export default function App() {
     );
   }
 
-  if (isPublicCatalog) {
-    return <PublicCatalog products={products} isLoading={isLoading} />;
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
+        <img src="https://i.imgur.com/XAhbi19.png" alt="Logo Aura Dourada" className="w-20 h-20 mb-4 object-contain animate-pulse" />
+        <h2 className="text-xl font-serif text-white mb-1">Verificando autenticação...</h2>
+        <p className="text-xs text-amber-200/60">Aura Dourada Sistema</p>
+      </div>
+    );
+  }
+
+  // Show Auth Screen if user is not authenticated
+  if (!session) {
+    return <Auth onSuccess={() => triggerToast('Bem-vindo(a) ao sistema!')} />;
   }
 
   if (isLoading) {
@@ -714,6 +759,37 @@ export default function App() {
           >
             Nova Venda +
           </button>
+
+          {/* User Profile Badge & Logout */}
+          <div className="pt-2 border-t border-gray-100 space-y-2">
+            <div className="flex items-center gap-2.5 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="w-8 h-8 rounded-full bg-gold-500/20 text-gold-600 font-bold flex items-center justify-center text-xs shrink-0">
+                {(session?.user?.user_metadata?.full_name || session?.user?.email || 'U')[0].toUpperCase()}
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-bold text-gray-900 truncate">
+                  {session?.user?.user_metadata?.full_name || 'Usuário'}
+                </span>
+                <span className="text-[10px] text-gray-500 truncate">
+                  {session?.user?.email}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await signOutUser();
+                  triggerToast('Sessão encerrada.');
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              className="w-full py-2 px-3 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer border border-transparent hover:border-red-100"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sair da Conta</span>
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -813,19 +889,29 @@ export default function App() {
         })}
       </nav>
 
-      {/* Floating autosave status on mobile */}
+      {/* Floating autosave status and profile on mobile */}
       <div className="md:hidden fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-xs shadow-md rounded-xl border border-gold-100 p-1.5 flex gap-1.5 items-center">
-        <div className="flex items-center gap-1.5 pl-1 pr-2">
+        <div className="flex items-center gap-1.5 pl-1 pr-1">
           {!isOnline && <WifiOff className="w-3 h-3 text-red-500 animate-pulse" />}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${isAutosaving ? 'bg-gold-500 animate-ping' : 'bg-emerald-400'}`}></span>
-              {lastSavedAt && (
-                <span className="text-[8px] text-gray-500 font-mono font-bold">{lastSavedAt.substring(0, 5)}</span>
-              )}
-            </div>
+          <div className="flex items-center gap-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${isAutosaving ? 'bg-gold-500 animate-ping' : 'bg-emerald-400'}`}></span>
+            {lastSavedAt && (
+              <span className="text-[8px] text-gray-500 font-mono font-bold">{lastSavedAt.substring(0, 5)}</span>
+            )}
           </div>
         </div>
+        <button
+          onClick={async () => {
+            if (confirm('Deseja realmente sair da sua conta?')) {
+              await signOutUser();
+              triggerToast('Sessão encerrada.');
+            }
+          }}
+          title="Sair da Conta"
+          className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors border-l border-gray-100 pl-1.5"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+        </button>
       </div>
 
     </div>
