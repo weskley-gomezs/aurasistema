@@ -137,37 +137,9 @@ export default function App() {
     init();
   }, []);
 
-  // Helper to notify other tabs/windows
-  const broadcastSync = () => {
-    try {
-      const bc = new BroadcastChannel('aura_dourada_sync');
-      bc.postMessage('sync');
-      bc.close();
-    } catch (e) {}
-  };
-
-  // 2. Real-time Subscriptions via Supabase + Smart Polling + Cross-tab Sync
+  // 2. Real-time Subscriptions via Supabase
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-
-    const loadAll = async () => {
-      try {
-        const [prods, custs, sls, encs] = await Promise.all([
-          fetchProducts(),
-          fetchCustomers(),
-          fetchSales(),
-          fetchEncomendas()
-        ]);
-        setProducts(prods);
-        setCustomers(custs);
-        setSales(sls);
-        setEncomendas(encs);
-        setIsLoading(false);
-        setLastSavedAt(new Date().toLocaleTimeString('pt-BR'));
-      } catch (e) {
-        console.error('[Sync Error]', e);
-      }
-    };
 
     const unsubProducts = subscribeToProducts((prods) => {
       setProducts(prods);
@@ -187,36 +159,11 @@ export default function App() {
       setEncomendas(encs);
     });
 
-    // Smart Polling every 4 seconds for instant real-time sync across tabs and devices
-    const pollInterval = setInterval(() => {
-      loadAll();
-    }, 4000);
-
-    // Window focus refresh (instantly syncs when switching back from catalog tab)
-    const handleFocus = () => {
-      loadAll();
-    };
-    window.addEventListener('focus', handleFocus);
-
-    // BroadcastChannel cross-tab sync
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel('aura_dourada_sync');
-      channel.onmessage = () => {
-        loadAll();
-      };
-    } catch (e) {
-      // BroadcastChannel might not be supported in some environments
-    }
-
     return () => {
       unsubProducts();
       unsubCustomers();
       unsubSales();
       unsubEncomendas();
-      clearInterval(pollInterval);
-      window.removeEventListener('focus', handleFocus);
-      if (channel) channel.close();
     };
   }, []);
 
@@ -225,7 +172,6 @@ export default function App() {
     try {
       const saved = await saveEncomendaToSupabase(updated);
       setEncomendas(prev => prev.map(e => e.id === saved.id ? saved : e));
-      broadcastSync();
       triggerToast('Encomenda atualizada com sucesso!');
     } catch (err) {
       console.error(err);
@@ -237,7 +183,6 @@ export default function App() {
     try {
       await deleteEncomendaFromSupabase(id);
       setEncomendas(prev => prev.filter(e => e.id !== id));
-      broadcastSync();
       triggerToast('Encomenda excluída.');
     } catch (err) {
       console.error(err);
@@ -262,7 +207,6 @@ export default function App() {
       };
       const saved = await saveEncomendaToSupabase(newEncomenda);
       setEncomendas(prev => [saved, ...prev]);
-      broadcastSync();
       triggerToast('Encomenda registrada com sucesso! 🛍️');
     } catch (err) {
       console.error('Erro ao registrar encomenda pública:', err);
@@ -281,7 +225,6 @@ export default function App() {
     try {
       const saved = await saveProductToSupabase(newProd as Product);
       setProducts(prev => [...prev, saved]);
-      broadcastSync();
       triggerToast('Produto cadastrado com sucesso! ✨');
     } catch (err) {
       console.error('Erro ao salvar produto:', err);
@@ -293,7 +236,6 @@ export default function App() {
     try {
       const saved = await saveProductToSupabase(updatedProd);
       setProducts(prev => prev.map(p => p.id === saved.id ? saved : p));
-      broadcastSync();
       triggerToast('Produto atualizado com sucesso!');
     } catch (err) {
       console.error('Erro ao atualizar produto:', err);
@@ -305,7 +247,6 @@ export default function App() {
     try {
       await deleteProductFromSupabase(id);
       setProducts(prev => prev.filter(p => p.id !== id));
-      broadcastSync();
       triggerToast('Produto excluído do estoque.');
     } catch (err) {
       console.error('Erro ao excluir produto:', err);
@@ -333,7 +274,6 @@ export default function App() {
 
       setProducts(updatedProducts);
       setSales(prev => [savedSale, ...prev]);
-      broadcastSync();
       triggerToast('Venda registrada e estoque atualizado! 🏷️');
     } catch (err) {
       console.error('Erro ao registrar venda:', err);
@@ -346,7 +286,6 @@ export default function App() {
     try {
       const saved = await saveCustomerToSupabase(newCust as Customer);
       setCustomers(prev => [...prev, saved]);
-      broadcastSync();
       triggerToast('Cliente cadastrado com sucesso! 👤');
     } catch (err) {
       console.error('Erro ao salvar cliente:', err);
@@ -358,7 +297,6 @@ export default function App() {
     try {
       const saved = await saveCustomerToSupabase(updatedCust);
       setCustomers(prev => prev.map(c => c.id === saved.id ? saved : c));
-      broadcastSync();
       triggerToast('Cadastro do cliente atualizado!');
     } catch (err) {
       console.error('Erro ao atualizar cliente:', err);
@@ -370,7 +308,6 @@ export default function App() {
     try {
       await deleteCustomerFromSupabase(id);
       setCustomers(prev => prev.filter(c => c.id !== id));
-      broadcastSync();
       triggerToast('Cliente excluído do cadastro.');
     } catch (err) {
       console.error('Erro ao excluir cliente:', err);
@@ -393,7 +330,6 @@ export default function App() {
     try {
       const saved = await saveSaleToSupabase(updatedSale);
       setSales(prev => prev.map(s => s.id === saved.id ? saved : s));
-      broadcastSync();
       triggerToast('Pagamento recebido com sucesso! 🎉');
     } catch (err) {
       console.error('Erro ao marcar venda como paga:', err);
@@ -410,7 +346,6 @@ export default function App() {
     try {
       const saved = await saveSaleToSupabase(updatedSale);
       setSales(prev => prev.map(s => s.id === saved.id ? saved : s));
-      broadcastSync();
       triggerToast('Venda atualizada com sucesso! 📝');
     } catch (err) {
       console.error('Erro ao editar venda:', err);
@@ -422,7 +357,6 @@ export default function App() {
     try {
       await deleteSaleFromSupabase(id);
       setSales(prev => prev.filter(s => s.id !== id));
-      broadcastSync();
       triggerToast('Registro de venda excluído.');
     } catch (err) {
       console.error('Erro ao excluir venda:', err);

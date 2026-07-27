@@ -160,66 +160,99 @@ function mapSaleToRow(sale: Omit<Sale, 'id'> & { id?: string }) {
 }
 
 // Fetch Products
-export async function fetchProducts(): Promise<Product[]> {
-  try {
-    await checkSupabaseConnection();
-    const { data, error } = await supabaseClient!
-      .from('products')
-      .select('*')
-      .order('name', { ascending: true });
+let productsFetchPromise: Promise<Product[]> | null = null;
 
-    if (error) {
-      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
-        console.error('[Supabase Error] fetchProducts:', error);
+export async function fetchProducts(): Promise<Product[]> {
+  if (productsFetchPromise) return productsFetchPromise;
+
+  productsFetchPromise = (async () => {
+    try {
+      await checkSupabaseConnection();
+      const { data, error } = await supabaseClient!
+        .from('products')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) {
+        if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+          console.error('[Supabase Error] fetchProducts:', error);
+        }
+        return [];
       }
+      return (data || []).map(mapProductFromRow);
+    } catch (err) {
+      console.error('[Supabase Catch Error] fetchProducts:', err);
       return [];
+    } finally {
+      productsFetchPromise = null;
     }
-    return (data || []).map(mapProductFromRow);
-  } catch (err) {
-    return [];
-  }
+  })();
+  
+  return productsFetchPromise;
 }
 
 // Fetch Customers
-export async function fetchCustomers(): Promise<Customer[]> {
-  try {
-    await checkSupabaseConnection();
-    const { data, error } = await supabaseClient!
-      .from('customers')
-      .select('*')
-      .order('name', { ascending: true });
+let customersFetchPromise: Promise<Customer[]> | null = null;
 
-    if (error) {
-      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
-        console.error('[Supabase Error] fetchCustomers:', error);
+export async function fetchCustomers(): Promise<Customer[]> {
+  if (customersFetchPromise) return customersFetchPromise;
+
+  customersFetchPromise = (async () => {
+    try {
+      await checkSupabaseConnection();
+      const { data, error } = await supabaseClient!
+        .from('customers')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) {
+        if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+          console.error('[Supabase Error] fetchCustomers:', error);
+        }
+        return [];
       }
+      return (data || []).map(mapCustomerFromRow);
+    } catch (err) {
+      console.error('[Supabase Catch Error] fetchCustomers:', err);
       return [];
+    } finally {
+      customersFetchPromise = null;
     }
-    return (data || []).map(mapCustomerFromRow);
-  } catch (err) {
-    return [];
-  }
+  })();
+  
+  return customersFetchPromise;
 }
 
 // Fetch Sales
-export async function fetchSales(): Promise<Sale[]> {
-  try {
-    await checkSupabaseConnection();
-    const { data, error } = await supabaseClient!
-      .from('sales')
-      .select('*')
-      .order('date', { ascending: false });
+let salesFetchPromise: Promise<Sale[]> | null = null;
 
-    if (error) {
-      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
-        console.error('[Supabase Error] fetchSales:', error);
+export async function fetchSales(): Promise<Sale[]> {
+  if (salesFetchPromise) return salesFetchPromise;
+
+  salesFetchPromise = (async () => {
+    try {
+      await checkSupabaseConnection();
+      const { data, error } = await supabaseClient!
+        .from('sales')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+          console.error('[Supabase Error] fetchSales:', error);
+        }
+        return [];
       }
+      return (data || []).map(mapSaleFromRow);
+    } catch (err) {
+      console.error('[Supabase Catch Error] fetchSales:', err);
       return [];
+    } finally {
+      salesFetchPromise = null;
     }
-    return (data || []).map(mapSaleFromRow);
-  } catch (err) {
-    return [];
-  }
+  })();
+  
+  return salesFetchPromise;
 }
 
 // Save Product (Upsert)
@@ -312,22 +345,50 @@ export async function deleteSaleFromSupabase(id: string): Promise<void> {
   }
 }
 
+// Queue/Debounce Helper para impedir requisições simultâneas e repetitivas
+function createDebouncedFetchLock<T>(fetchFn: () => Promise<T>, callback: (data: T) => void, delay: number = 300) {
+  let timeoutId: any = null;
+  let isFetching = false;
+  let hasPendingEvent = false;
+
+  const executeFetch = async () => {
+    if (isFetching) {
+      hasPendingEvent = true; // Coloca na fila se já houver uma requisição em andamento
+      return;
+    }
+    
+    isFetching = true;
+    try {
+      const data = await fetchFn();
+      callback(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      isFetching = false;
+      if (hasPendingEvent) {
+        hasPendingEvent = false;
+        timeoutId = setTimeout(executeFetch, delay);
+      }
+    }
+  };
+
+  return () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(executeFetch, delay);
+  };
+}
+
 // Realtime Subscriptions via supabaseClient.channel().on().subscribe()
 export function subscribeToProducts(callback: (products: Product[]) => void) {
   if (!isSupabaseConfigured || !supabaseClient) return () => {};
 
   fetchProducts().then(callback).catch(console.error);
 
+  const handleEvent = createDebouncedFetchLock(fetchProducts, callback, 300);
+
   const channel = supabaseClient
     .channel('public:products')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
-      try {
-        const prods = await fetchProducts();
-        callback(prods);
-      } catch (e) {
-        console.error(e);
-      }
-    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, handleEvent)
     .subscribe();
 
   return () => {
@@ -340,16 +401,11 @@ export function subscribeToCustomers(callback: (customers: Customer[]) => void) 
 
   fetchCustomers().then(callback).catch(console.error);
 
+  const handleEvent = createDebouncedFetchLock(fetchCustomers, callback, 300);
+
   const channel = supabaseClient
     .channel('public:customers')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, async () => {
-      try {
-        const custs = await fetchCustomers();
-        callback(custs);
-      } catch (e) {
-        console.error(e);
-      }
-    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, handleEvent)
     .subscribe();
 
   return () => {
@@ -362,16 +418,11 @@ export function subscribeToSales(callback: (sales: Sale[]) => void) {
 
   fetchSales().then(callback).catch(console.error);
 
+  const handleEvent = createDebouncedFetchLock(fetchSales, callback, 300);
+
   const channel = supabaseClient
     .channel('public:sales')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, async () => {
-      try {
-        const sales = await fetchSales();
-        callback(sales);
-      } catch (e) {
-        console.error(e);
-      }
-    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, handleEvent)
     .subscribe();
 
   return () => {
@@ -380,24 +431,35 @@ export function subscribeToSales(callback: (sales: Sale[]) => void) {
 }
 
 // Fetch Encomendas
-export async function fetchEncomendas(): Promise<Encomenda[]> {
-  try {
-    await checkSupabaseConnection();
-    const { data, error } = await supabaseClient!
-      .from('encomendas')
-      .select('*')
-      .order('created_at', { ascending: false });
+let encomendasFetchPromise: Promise<Encomenda[]> | null = null;
 
-    if (error) {
-      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
-        console.error('[Supabase Error] fetchEncomendas:', error);
+export async function fetchEncomendas(): Promise<Encomenda[]> {
+  if (encomendasFetchPromise) return encomendasFetchPromise;
+
+  encomendasFetchPromise = (async () => {
+    try {
+      await checkSupabaseConnection();
+      const { data, error } = await supabaseClient!
+        .from('encomendas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+          console.error('[Supabase Error] fetchEncomendas:', error);
+        }
+        return []; // Return empty if table doesn't exist yet so app doesn't crash
       }
-      return []; // Return empty if table doesn't exist yet so app doesn't crash
+      return (data || []).map(mapEncomendaFromRow);
+    } catch (err) {
+      console.error('[Supabase Catch Error] fetchEncomendas:', err);
+      return [];
+    } finally {
+      encomendasFetchPromise = null;
     }
-    return (data || []).map(mapEncomendaFromRow);
-  } catch (err) {
-    return [];
-  }
+  })();
+  
+  return encomendasFetchPromise;
 }
 
 // Save Encomenda (Upsert)
@@ -498,16 +560,11 @@ export function subscribeToEncomendas(callback: (encomendas: Encomenda[]) => voi
 
   fetchEncomendas().then(callback).catch(console.error);
 
+  const handleEvent = createDebouncedFetchLock(fetchEncomendas, callback, 300);
+
   const channel = supabaseClient
     .channel('public:encomendas')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, async () => {
-      try {
-        const encs = await fetchEncomendas();
-        callback(encs);
-      } catch (e) {
-        console.error(e);
-      }
-    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, handleEvent)
     .subscribe();
 
   return () => {
