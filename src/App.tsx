@@ -1,11 +1,12 @@
 import { useState, useEffect, ChangeEvent } from 'react';
-import { Product, Customer, Sale, PaymentMethod } from './types';
+import { Product, Customer, Sale, PaymentMethod, Encomenda } from './types';
 import { INITIAL_PRODUCTS, INITIAL_CUSTOMERS, INITIAL_SALES } from './utils/initialData';
 import Dashboard from './components/Dashboard';
 import Estoque from './components/Estoque';
 import Vendas from './components/Vendas';
 import Clientes from './components/Clientes';
 import Fiado from './components/Fiado';
+import Encomendas from './components/Encomendas';
 import PublicCatalog from './components/PublicCatalog';
 import Auth from './components/Auth';
 import { 
@@ -14,16 +15,21 @@ import {
   fetchProducts,
   fetchCustomers,
   fetchSales,
+  fetchEncomendas,
   saveProductToSupabase, 
   deleteProductFromSupabase, 
   saveCustomerToSupabase, 
   deleteCustomerFromSupabase, 
   saveSaleToSupabase, 
   deleteSaleFromSupabase,
+  saveEncomendaToSupabase,
+  deleteEncomendaFromSupabase,
+  createOrGetCustomerByPhone,
   resetSupabaseWithData,
   subscribeToProducts,
   subscribeToCustomers,
   subscribeToSales,
+  subscribeToEncomendas,
   signOutUser
 } from './utils/supabase';
 import { 
@@ -33,6 +39,7 @@ import {
   Receipt, 
   Users, 
   CreditCard, 
+  ShoppingBag,
   RefreshCw, 
   CheckCircle2,
   Clock,
@@ -55,6 +62,7 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
 
   // Auth States
   const [session, setSession] = useState<any>(null);
@@ -109,14 +117,16 @@ export default function App() {
       console.log('[App Debug] Supabase configurado, carregando dados...');
       setIsLoading(true);
       try {
-        const [prods, custs, sls] = await Promise.all([
+        const [prods, custs, sls, encs] = await Promise.all([
           fetchProducts(),
           fetchCustomers(),
-          fetchSales()
+          fetchSales(),
+          fetchEncomendas()
         ]);
         setProducts(prods);
         setCustomers(custs);
         setSales(sls);
+        setEncomendas(encs);
         setIsLoading(false);
         setLastSavedAt(new Date().toLocaleTimeString('pt-BR'));
       } catch (err) {
@@ -145,12 +155,62 @@ export default function App() {
       setSales(sls);
     });
 
+    const unsubEncomendas = subscribeToEncomendas((encs) => {
+      setEncomendas(encs);
+    });
+
     return () => {
       unsubProducts();
       unsubCustomers();
       unsubSales();
+      unsubEncomendas();
     };
   }, []);
+
+  // Encomenda actions
+  const handleUpdateEncomenda = async (updated: Encomenda) => {
+    try {
+      const saved = await saveEncomendaToSupabase(updated);
+      setEncomendas(prev => prev.map(e => e.id === saved.id ? saved : e));
+      triggerToast('Encomenda atualizada com sucesso!');
+    } catch (err) {
+      console.error(err);
+      triggerToast('Erro ao atualizar encomenda.');
+    }
+  };
+
+  const handleDeleteEncomenda = async (id: string) => {
+    try {
+      await deleteEncomendaFromSupabase(id);
+      setEncomendas(prev => prev.filter(e => e.id !== id));
+      triggerToast('Encomenda excluída.');
+    } catch (err) {
+      console.error(err);
+      triggerToast('Erro ao excluir encomenda.');
+    }
+  };
+
+  const handlePublicOrderSubmit = async (product: Product, name: string, phone: string) => {
+    try {
+      const customer = await createOrGetCustomerByPhone(name, phone);
+      const newEncomenda = {
+        customerId: customer.id,
+        customerName: customer.name,
+        customerPhone: customer.whatsapp,
+        productId: product.id,
+        productName: `${product.brand} - ${product.name}`,
+        productPrice: product.sellPrice,
+        status: 'pendente' as const,
+        createdAt: new Date().toISOString()
+      };
+      const saved = await saveEncomendaToSupabase(newEncomenda);
+      setEncomendas(prev => [saved, ...prev]);
+      triggerToast('Encomenda registrada com sucesso! 🛍️');
+    } catch (err) {
+      console.error('Erro ao registrar encomenda pública:', err);
+      throw err;
+    }
+  };
 
   // Toast Helper
   const triggerToast = (msg: string) => {
@@ -459,6 +519,12 @@ export default function App() {
     { id: 'vendas', label: 'Vendas', icon: Receipt },
     { id: 'clientes', label: 'Clientes', icon: Users },
     { 
+      id: 'encomendas', 
+      label: 'Encomendas', 
+      icon: ShoppingBag, 
+      badge: encomendas.filter(e => e.status === 'pendente').length 
+    },
+    { 
       id: 'fiado', 
       label: 'Fiado / Pendências', 
       icon: CreditCard, 
@@ -468,7 +534,7 @@ export default function App() {
   ];
 
   if (isPublicCatalog) {
-    return <PublicCatalog products={products} isLoading={isLoading} />;
+    return <PublicCatalog products={products} isLoading={isLoading} onOrderSubmit={handlePublicOrderSubmit} />;
   }
 
   // If Supabase is NOT configured, show clear configuration error screen
@@ -839,6 +905,13 @@ export default function App() {
                 onAddCustomer={handleAddCustomer} 
                 onEditCustomer={handleEditCustomer} 
                 onDeleteCustomer={handleDeleteCustomer} 
+              />
+            )}
+            {activeTab === 'encomendas' && (
+              <Encomendas
+                encomendas={encomendas}
+                onUpdateEncomenda={handleUpdateEncomenda}
+                onDeleteEncomenda={handleDeleteEncomenda}
               />
             )}
             {activeTab === 'fiado' && (

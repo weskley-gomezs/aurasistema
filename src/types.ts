@@ -47,3 +47,16 @@ export interface Customer {
   whatsapp: string;
   notes: string;
 }
+
+export interface Encomenda {
+  id: string;
+  customerId?: string;
+  customerName: string;
+  customerPhone: string;
+  productId?: string;
+  productName: string;
+  productPrice?: number;
+  expectedDate?: string;
+  status: 'pendente' | 'chegou' | 'concluido';
+  createdAt: string;
+}

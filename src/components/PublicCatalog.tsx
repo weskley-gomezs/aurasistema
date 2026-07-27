@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Gender } from '../types';
-import { Search, MessageCircle, Sparkles, Image as ImageIcon, Heart, Eye, ArrowLeft, Loader2, ShoppingCart, RefreshCw, X, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, MessageCircle, Sparkles, Image as ImageIcon, Heart, Eye, ArrowLeft, Loader2, ShoppingCart, RefreshCw, X, ShoppingBag, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PublicCatalogProps {
   products: Product[];
   isLoading: boolean;
+  onOrderSubmit?: (product: Product, name: string, phone: string) => Promise<void>;
 }
 
 interface HeroSlide {
@@ -43,12 +44,51 @@ const CATEGORY_EMOJIS: Record<Category, string> = {
   outros: '✨'
 };
 
-export default function PublicCatalog({ products, isLoading }: PublicCatalogProps) {
+export default function PublicCatalog({ products, isLoading, onOrderSubmit }: PublicCatalogProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'todos'>('todos');
   const [selectedGender, setSelectedGender] = useState<Gender | 'todos'>('todos');
   const [selectedBrand, setSelectedBrand] = useState<string>('todas');
   const [selectedProductForImage, setSelectedProductForImage] = useState<Product | null>(null);
+
+  // Encomenda Modal States
+  const [orderModalProduct, setOrderModalProduct] = useState<Product | null>(null);
+  const [orderName, setOrderName] = useState('');
+  const [orderPhone, setOrderPhone] = useState('');
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [orderSuccessModalData, setOrderSuccessModalData] = useState<{ productName: string; whatsappUrl: string } | null>(null);
+
+  const handleOrderFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderModalProduct || !orderName.trim() || !orderPhone.trim()) {
+      alert('Por favor, preencha seu nome e WhatsApp.');
+      return;
+    }
+
+    setIsSubmittingOrder(true);
+    try {
+      if (onOrderSubmit) {
+        await onOrderSubmit(orderModalProduct, orderName.trim(), orderPhone.trim());
+      }
+
+      const phone = phoneParam || '5561992096078';
+      const text = `Olá! ✨ Acabei de solicitar uma encomenda do produto *${orderModalProduct.brand} - ${orderModalProduct.name}* (R$ ${(orderModalProduct.sellPrice || 0).toFixed(2)}) pelo catálogo online da Aura Dourada. Meu nome é ${orderName.trim()}! 🥰🛒`;
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+
+      setOrderSuccessModalData({
+        productName: orderModalProduct.name,
+        whatsappUrl
+      });
+      setOrderModalProduct(null);
+      setOrderName('');
+      setOrderPhone('');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao registrar encomenda. Tente novamente.');
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
 
   // Hero banner slideshow state (8s auto-transition)
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -190,14 +230,23 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
               </div>
             </div>
             
-            <a
-              href={getWhatsAppLink(p)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-emerald-500/15"
-            >
-              <MessageCircle className="w-4 h-4 fill-current" /> Pedir
-            </a>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setOrderModalProduct(p)}
+                className="flex items-center gap-1 bg-gold-500 hover:bg-gold-600 text-white px-3 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-gold-500/15 cursor-pointer"
+                title="Encomendar produto"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" /> Encomendar
+              </button>
+              <a
+                href={getWhatsAppLink(p)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-emerald-500/15"
+              >
+                <MessageCircle className="w-3.5 h-3.5 fill-current" /> Pedir
+              </a>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -517,6 +566,145 @@ export default function PublicCatalog({ products, isLoading }: PublicCatalogProp
                     <MessageCircle className="w-4 h-4 fill-current" /> Fazer Pedido
                   </a>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Encomenda Modal */}
+      <AnimatePresence>
+        {orderModalProduct && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-gold-200"
+            >
+              <div className="bg-gradient-to-r from-gold-500 to-rose-gold-500 text-white px-6 py-5 flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif text-lg font-bold">Solicitar Encomenda</h3>
+                  <p className="text-[11px] text-white/90 truncate max-w-[280px]">{orderModalProduct.brand} - {orderModalProduct.name}</p>
+                </div>
+                <button
+                  onClick={() => setOrderModalProduct(null)}
+                  className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleOrderFormSubmit} className="p-6 space-y-4">
+                <div className="bg-gold-50/50 p-3.5 rounded-2xl border border-gold-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[9px] font-bold text-gray-400 uppercase">Valor do Produto</span>
+                    <p className="text-base font-black text-emerald-600">R$ {(orderModalProduct.sellPrice || 0).toFixed(2)}</p>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-1 bg-gold-200/50 text-gold-800 rounded-full">
+                    Encomenda Oficial
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 uppercase">Seu Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Maria Silva"
+                    value={orderName}
+                    onChange={(e) => setOrderName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 uppercase">Seu WhatsApp (com DDD) *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Ex: 61992096078"
+                    value={orderPhone}
+                    onChange={(e) => setOrderPhone(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900"
+                  />
+                  <p className="text-[10px] text-gray-400">Usaremos para te avisar quando a encomenda chegar!</p>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setOrderModalProduct(null)}
+                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-xs transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingOrder}
+                    className="w-full flex items-center justify-center gap-1.5 py-3 bg-gold-500 hover:bg-gold-600 disabled:bg-gray-300 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer"
+                  >
+                    {isSubmittingOrder ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Registrando...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag className="w-4 h-4" /> Confirmar Encomenda
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Encomenda Success Modal */}
+      <AnimatePresence>
+        {orderSuccessModalData && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-emerald-100 p-6 text-center space-y-4"
+            >
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
+              </div>
+
+              <div>
+                <h3 className="font-serif text-xl font-bold text-gray-900">Encomenda Solicitada!</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Seu pedido de <span className="font-bold text-gray-800">"{orderSuccessModalData.productName}"</span> foi registrado com sucesso e enviado ao lojista.
+                </p>
+              </div>
+
+              <div className="bg-emerald-50 rounded-2xl p-4 text-xs text-emerald-900 border border-emerald-100 text-left space-y-1">
+                <p className="font-bold">O que acontece agora?</p>
+                <p className="text-[11px] opacity-80 leading-relaxed">
+                  O lojista recebeu seus dados e fará o acompanhamento. Clique abaixo para enviar a confirmação direto no WhatsApp do atendimento!
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setOrderSuccessModalData(null)}
+                  className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all"
+                >
+                  Fechar
+                </button>
+                <a
+                  href={orderSuccessModalData.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOrderSuccessModalData(null)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" /> Abrir WhatsApp
+                </a>
               </div>
             </motion.div>
           </div>

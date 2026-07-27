@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Product, Customer, Sale } from '../types';
+import { Product, Customer, Sale, Encomenda } from '../types';
 
 // Supabase Environment configuration
 const metaEnv = (import.meta as any).env || {};
@@ -161,47 +161,65 @@ function mapSaleToRow(sale: Omit<Sale, 'id'> & { id?: string }) {
 
 // Fetch Products
 export async function fetchProducts(): Promise<Product[]> {
-  await checkSupabaseConnection();
-  const { data, error } = await supabaseClient!
-    .from('products')
-    .select('*')
-    .order('name', { ascending: true });
+  try {
+    await checkSupabaseConnection();
+    const { data, error } = await supabaseClient!
+      .from('products')
+      .select('*')
+      .order('name', { ascending: true });
 
-  if (error) {
-    console.error('[Supabase Error] fetchProducts:', error);
-    throw error;
+    if (error) {
+      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+        console.error('[Supabase Error] fetchProducts:', error);
+      }
+      return [];
+    }
+    return (data || []).map(mapProductFromRow);
+  } catch (err) {
+    return [];
   }
-  return (data || []).map(mapProductFromRow);
 }
 
 // Fetch Customers
 export async function fetchCustomers(): Promise<Customer[]> {
-  await checkSupabaseConnection();
-  const { data, error } = await supabaseClient!
-    .from('customers')
-    .select('*')
-    .order('name', { ascending: true });
+  try {
+    await checkSupabaseConnection();
+    const { data, error } = await supabaseClient!
+      .from('customers')
+      .select('*')
+      .order('name', { ascending: true });
 
-  if (error) {
-    console.error('[Supabase Error] fetchCustomers:', error);
-    throw error;
+    if (error) {
+      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+        console.error('[Supabase Error] fetchCustomers:', error);
+      }
+      return [];
+    }
+    return (data || []).map(mapCustomerFromRow);
+  } catch (err) {
+    return [];
   }
-  return (data || []).map(mapCustomerFromRow);
 }
 
 // Fetch Sales
 export async function fetchSales(): Promise<Sale[]> {
-  await checkSupabaseConnection();
-  const { data, error } = await supabaseClient!
-    .from('sales')
-    .select('*')
-    .order('date', { ascending: false });
+  try {
+    await checkSupabaseConnection();
+    const { data, error } = await supabaseClient!
+      .from('sales')
+      .select('*')
+      .order('date', { ascending: false });
 
-  if (error) {
-    console.error('[Supabase Error] fetchSales:', error);
-    throw error;
+    if (error) {
+      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+        console.error('[Supabase Error] fetchSales:', error);
+      }
+      return [];
+    }
+    return (data || []).map(mapSaleFromRow);
+  } catch (err) {
+    return [];
   }
-  return (data || []).map(mapSaleFromRow);
 }
 
 // Save Product (Upsert)
@@ -361,6 +379,138 @@ export function subscribeToSales(callback: (sales: Sale[]) => void) {
   };
 }
 
+// Fetch Encomendas
+export async function fetchEncomendas(): Promise<Encomenda[]> {
+  try {
+    await checkSupabaseConnection();
+    const { data, error } = await supabaseClient!
+      .from('encomendas')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+        console.error('[Supabase Error] fetchEncomendas:', error);
+      }
+      return []; // Return empty if table doesn't exist yet so app doesn't crash
+    }
+    return (data || []).map(mapEncomendaFromRow);
+  } catch (err) {
+    return [];
+  }
+}
+
+// Save Encomenda (Upsert)
+export async function saveEncomendaToSupabase(encomenda: Omit<Encomenda, 'id'> & { id?: string }): Promise<Encomenda> {
+  await checkSupabaseConnection();
+  const { data, error } = await supabaseClient!
+    .from('encomendas')
+    .upsert(mapEncomendaToRow(encomenda))
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase Error] saveEncomendaToSupabase:', error);
+    throw error;
+  }
+  return mapEncomendaFromRow(data);
+}
+
+// Delete Encomenda
+export async function deleteEncomendaFromSupabase(id: string): Promise<void> {
+  await checkSupabaseConnection();
+  const { error } = await supabaseClient!
+    .from('encomendas')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('[Supabase Error] deleteEncomendaFromSupabase:', error);
+    throw error;
+  }
+}
+
+// Create or Get Customer by Phone
+export async function createOrGetCustomerByPhone(name: string, phone: string): Promise<Customer> {
+  await checkSupabaseConnection();
+  const cleanedPhone = phone.replace(/\D/g, '');
+  const trimmedName = name.trim();
+
+  // Check if customer exists by phone
+  const { data, error } = await supabaseClient!
+    .from('customers')
+    .select('*')
+    .or(`phone.eq.${cleanedPhone},phone.eq.${phone}`);
+
+  if (data && data.length > 0) {
+    return mapCustomerFromRow(data[0]);
+  }
+
+  // Create new customer
+  const newCust = {
+    name: trimmedName,
+    whatsapp: cleanedPhone,
+    notes: 'Cadastrado automaticamente via Catálogo (Encomenda)'
+  } as Customer;
+  return await saveCustomerToSupabase(newCust);
+}
+
+// Mapping Encomenda
+function mapEncomendaFromRow(row: any): Encomenda {
+  return {
+    id: row.id,
+    customerId: row.customer_id ?? row.customerId ?? undefined,
+    customerName: row.customer_name ?? row.customerName ?? '',
+    customerPhone: row.customer_phone ?? row.customerPhone ?? '',
+    productId: row.product_id ?? row.productId ?? undefined,
+    productName: row.product_name ?? row.productName ?? '',
+    productPrice: row.product_price != null ? Number(row.product_price) : undefined,
+    expectedDate: row.expected_date ?? row.expectedDate ?? undefined,
+    status: row.status ?? 'pendente',
+    createdAt: row.created_at ?? new Date().toISOString()
+  };
+}
+
+function mapEncomendaToRow(enc: Omit<Encomenda, 'id'> & { id?: string }) {
+  const row: any = {
+    customer_id: enc.customerId || null,
+    customer_name: enc.customerName || '',
+    customer_phone: enc.customerPhone || '',
+    product_id: enc.productId || null,
+    product_name: enc.productName || '',
+    product_price: enc.productPrice ?? null,
+    expected_date: enc.expectedDate || null,
+    status: enc.status || 'pendente',
+  };
+  if (enc.id) {
+    row.id = enc.id;
+  }
+  return row;
+}
+
+// Realtime subscription for encomendas
+export function subscribeToEncomendas(callback: (encomendas: Encomenda[]) => void) {
+  if (!isSupabaseConfigured || !supabaseClient) return () => {};
+
+  fetchEncomendas().then(callback).catch(console.error);
+
+  const channel = supabaseClient
+    .channel('public:encomendas')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, async () => {
+      try {
+        const encs = await fetchEncomendas();
+        callback(encs);
+      } catch (e) {
+        console.error(e);
+      }
+    })
+    .subscribe();
+
+  return () => {
+    supabaseClient.removeChannel(channel);
+  };
+}
+
 // Reset Supabase DB with new or default data
 export async function resetSupabaseWithData(
   initialProducts: Product[],
@@ -373,6 +523,11 @@ export async function resetSupabaseWithData(
     await supabaseClient!.from('products').delete().neq('id', '');
     await supabaseClient!.from('customers').delete().neq('id', '');
     await supabaseClient!.from('sales').delete().neq('id', '');
+    try {
+      await supabaseClient!.from('encomendas').delete().neq('id', '');
+    } catch {
+      // table might not exist yet
+    }
 
     if (initialProducts.length > 0) {
       await supabaseClient!.from('products').upsert(initialProducts.map(mapProductToRow));
@@ -388,3 +543,4 @@ export async function resetSupabaseWithData(
     throw error;
   }
 }
+
