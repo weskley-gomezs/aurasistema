@@ -56,6 +56,8 @@ export interface Encomenda {
   productId?: string;
   productName: string;
   productPrice?: number;
+  quantity?: number;
+  paymentMethodOnArrival?: string;
   expectedDate?: string;
   status: 'pendente' | 'chegou' | 'concluido';
   createdAt: string;

@@ -10,8 +10,13 @@ CREATE TABLE IF NOT EXISTS encomendas (
     product_id UUID REFERENCES products(id) ON DELETE SET NULL,
     product_name TEXT NOT NULL,
     product_price NUMERIC,
+    quantity INTEGER DEFAULT 1,
+    payment_method_on_arrival TEXT,
     expected_date DATE,
     status TEXT DEFAULT 'pendente',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE encomendas ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+ALTER TABLE encomendas ADD COLUMN IF NOT EXISTS payment_method_on_arrival TEXT;
 

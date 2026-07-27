@@ -190,7 +190,7 @@ export default function App() {
     }
   };
 
-  const handlePublicOrderSubmit = async (product: Product, name: string, phone: string) => {
+  const handlePublicOrderSubmit = async (product: Product, name: string, phone: string, quantity: number, paymentMethod: string) => {
     try {
       const customer = await createOrGetCustomerByPhone(name, phone);
       const newEncomenda = {
@@ -200,6 +200,8 @@ export default function App() {
         productId: product.id,
         productName: `${product.brand} - ${product.name}`,
         productPrice: product.sellPrice,
+        quantity: quantity || 1,
+        paymentMethodOnArrival: paymentMethod || 'Pix',
         status: 'pendente' as const,
         createdAt: new Date().toISOString()
       };

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 interface PublicCatalogProps {
   products: Product[];
   isLoading: boolean;
-  onOrderSubmit?: (product: Product, name: string, phone: string) => Promise<void>;
+  onOrderSubmit?: (product: Product, name: string, phone: string, quantity: number, paymentMethod: string) => Promise<void>;
 }
 
 interface HeroSlide {
@@ -55,6 +55,8 @@ export default function PublicCatalog({ products, isLoading, onOrderSubmit }: Pu
   const [orderModalProduct, setOrderModalProduct] = useState<Product | null>(null);
   const [orderName, setOrderName] = useState('');
   const [orderPhone, setOrderPhone] = useState('');
+  const [orderQuantity, setOrderQuantity] = useState<number>(1);
+  const [orderPaymentMethod, setOrderPaymentMethod] = useState<string>('Pix');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderSuccessModalData, setOrderSuccessModalData] = useState<{ productName: string; whatsappUrl: string } | null>(null);
 
@@ -68,11 +70,11 @@ export default function PublicCatalog({ products, isLoading, onOrderSubmit }: Pu
     setIsSubmittingOrder(true);
     try {
       if (onOrderSubmit) {
-        await onOrderSubmit(orderModalProduct, orderName.trim(), orderPhone.trim());
+        await onOrderSubmit(orderModalProduct, orderName.trim(), orderPhone.trim(), orderQuantity, orderPaymentMethod);
       }
 
       const phone = phoneParam || '5561992096078';
-      const text = `Olá! ✨ Acabei de solicitar uma encomenda do produto *${orderModalProduct.brand} - ${orderModalProduct.name}* (R$ ${(orderModalProduct.sellPrice || 0).toFixed(2)}) pelo catálogo online da Aura Dourada. Meu nome é ${orderName.trim()}! 🥰🛒`;
+      const text = `Olá! ✨ Acabei de solicitar ${orderQuantity}x unidade(s) de encomenda do produto *${orderModalProduct.brand} - ${orderModalProduct.name}* (R$ ${(orderModalProduct.sellPrice || 0).toFixed(2)} cada). Forma de pagamento ao chegar: *${orderPaymentMethod}*. Meu nome é ${orderName.trim()}! 🥰🛒`;
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 
       setOrderSuccessModalData({
@@ -82,6 +84,8 @@ export default function PublicCatalog({ products, isLoading, onOrderSubmit }: Pu
       setOrderModalProduct(null);
       setOrderName('');
       setOrderPhone('');
+      setOrderQuantity(1);
+      setOrderPaymentMethod('Pix');
     } catch (err) {
       console.error(err);
       alert('Erro ao registrar encomenda. Tente novamente.');
@@ -215,34 +219,46 @@ export default function PublicCatalog({ products, isLoading, onOrderSubmit }: Pu
             <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2">{p.name || 'Produto'}</h3>
           </div>
 
-          <div className="pt-2 border-t border-gray-50 flex items-end justify-between">
-            <div>
-              <p className="text-[9px] text-gray-400 font-bold uppercase">Preço</p>
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-black text-emerald-600">
-                  R$ {(p.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                {p.originalPrice && (
-                  <p className="text-[10px] font-bold text-red-500 line-through">
-                    R$ {(p.originalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className="pt-3 border-t border-gray-100 flex flex-col gap-2.5">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[9px] text-gray-400 font-bold uppercase">Preço</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-black text-emerald-600">
+                    R$ {(p.sellPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
-                )}
+                  {p.originalPrice && (
+                    <p className="text-[10px] font-bold text-red-500 line-through">
+                      R$ {(p.originalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setOrderModalProduct(p)}
-                className="flex items-center gap-1 bg-gold-500 hover:bg-gold-600 text-white px-3 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-gold-500/15 cursor-pointer"
-                title="Encomendar produto"
-              >
-                <ShoppingBag className="w-3.5 h-3.5" /> Encomendar
-              </button>
+            <div className="flex items-center gap-2 w-full">
+              {!isAvailable ? (
+                <button
+                  onClick={() => {
+                    setOrderQuantity(1);
+                    setOrderPaymentMethod('Pix');
+                    setOrderModalProduct(p);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1 bg-gold-500 hover:bg-gold-600 text-white py-2.5 px-2 rounded-xl font-bold text-xs transition-all shadow-md shadow-gold-500/15 cursor-pointer whitespace-nowrap"
+                  title="Encomendar produto"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" /> Encomendar
+                </button>
+              ) : (
+                <span className="flex-1 text-center py-2 px-2 bg-emerald-50 text-emerald-700 font-bold text-[11px] rounded-xl border border-emerald-100 flex items-center justify-center gap-1 whitespace-nowrap">
+                  <CheckCircle className="w-3 h-3" /> Em Estoque
+                </span>
+              )}
               <a
                 href={getWhatsAppLink(p)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-emerald-500/15"
+                className="flex-1 flex items-center justify-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 px-2 rounded-xl font-bold text-xs transition-all shadow-md shadow-emerald-500/15 whitespace-nowrap"
               >
                 <MessageCircle className="w-3.5 h-3.5 fill-current" /> Pedir
               </a>
@@ -598,12 +614,39 @@ export default function PublicCatalog({ products, isLoading, onOrderSubmit }: Pu
               <form onSubmit={handleOrderFormSubmit} className="p-6 space-y-4">
                 <div className="bg-gold-50/50 p-3.5 rounded-2xl border border-gold-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase">Valor do Produto</span>
+                    <span className="text-[9px] font-bold text-gray-400 uppercase">Valor Unitário</span>
                     <p className="text-base font-black text-emerald-600">R$ {(orderModalProduct.sellPrice || 0).toFixed(2)}</p>
                   </div>
                   <span className="text-[10px] font-bold px-2.5 py-1 bg-gold-200/50 text-gold-800 rounded-full">
-                    Encomenda Oficial
+                    Fora de Estoque (Encomenda)
                   </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700 uppercase">Quantidade *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={orderQuantity}
+                      onChange={(e) => setOrderQuantity(Number(e.target.value) || 1)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700 uppercase">Pgto ao Chegar *</label>
+                    <select
+                      value={orderPaymentMethod}
+                      onChange={(e) => setOrderPaymentMethod(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900"
+                    >
+                      <option value="Pix">Pix</option>
+                      <option value="Dinheiro">Dinheiro</option>
+                      <option value="Cartão">Cartão</option>
+                      <option value="Fiado">Fiado</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="space-y-1">

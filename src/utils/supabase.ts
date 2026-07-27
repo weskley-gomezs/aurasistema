@@ -465,6 +465,8 @@ function mapEncomendaFromRow(row: any): Encomenda {
     productId: row.product_id ?? row.productId ?? undefined,
     productName: row.product_name ?? row.productName ?? '',
     productPrice: row.product_price != null ? Number(row.product_price) : undefined,
+    quantity: row.quantity != null ? Number(row.quantity) : 1,
+    paymentMethodOnArrival: row.payment_method_on_arrival ?? row.paymentMethodOnArrival ?? 'Pix',
     expectedDate: row.expected_date ?? row.expectedDate ?? undefined,
     status: row.status ?? 'pendente',
     createdAt: row.created_at ?? new Date().toISOString()
@@ -479,6 +481,8 @@ function mapEncomendaToRow(enc: Omit<Encomenda, 'id'> & { id?: string }) {
     product_id: enc.productId || null,
     product_name: enc.productName || '',
     product_price: enc.productPrice ?? null,
+    quantity: enc.quantity ?? 1,
+    payment_method_on_arrival: enc.paymentMethodOnArrival || 'Pix',
     expected_date: enc.expectedDate || null,
     status: enc.status || 'pendente',
   };

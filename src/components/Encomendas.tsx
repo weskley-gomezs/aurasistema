@@ -17,6 +17,8 @@ export default function Encomendas({ encomendas, onUpdateEncomenda, onDeleteEnco
   const [editingEncomenda, setEditingEncomenda] = useState<Encomenda | null>(null);
   const [expectedDateInput, setExpectedDateInput] = useState('');
   const [statusInput, setStatusInput] = useState<'pendente' | 'chegou' | 'concluido'>('pendente');
+  const [quantityInput, setQuantityInput] = useState<number>(1);
+  const [paymentMethodInput, setPaymentMethodInput] = useState<string>('Pix');
 
   const filteredEncomendas = (encomendas || []).filter(e => {
     const matchesSearch = 
@@ -35,7 +37,9 @@ export default function Encomendas({ encomendas, onUpdateEncomenda, onDeleteEnco
       ? new Date(enc.expectedDate + 'T12:00:00').toLocaleDateString('pt-BR') 
       : 'em breve';
     
-    const message = `Olá, ${enc.customerName}! ✨ Passando para avisar que sua encomenda do produto *${enc.productName}* na Aura Dourada tem previsão de chegada para *${formattedDate}*. Qualquer dúvida estou à disposição! 🛍️`;
+    const qty = enc.quantity || 1;
+    const payMethod = enc.paymentMethodOnArrival || 'Pix';
+    const message = `Olá, ${enc.customerName}! ✨ Passando para avisar que sua encomenda de *${qty}x ${enc.productName}* na Aura Dourada (Forma de pagamento escolhida ao chegar: *${payMethod}*) tem previsão de chegada para *${formattedDate}*. Qualquer dúvida estou à disposição! 🛍️`;
     
     return `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
   };
@@ -44,6 +48,8 @@ export default function Encomendas({ encomendas, onUpdateEncomenda, onDeleteEnco
     setEditingEncomenda(enc);
     setExpectedDateInput(enc.expectedDate || '');
     setStatusInput(enc.status || 'pendente');
+    setQuantityInput(enc.quantity || 1);
+    setPaymentMethodInput(enc.paymentMethodOnArrival || 'Pix');
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -53,7 +59,9 @@ export default function Encomendas({ encomendas, onUpdateEncomenda, onDeleteEnco
     onUpdateEncomenda({
       ...editingEncomenda,
       expectedDate: expectedDateInput || undefined,
-      status: statusInput
+      status: statusInput,
+      quantity: Number(quantityInput) || 1,
+      paymentMethodOnArrival: paymentMethodInput
     });
     setEditingEncomenda(null);
   };
@@ -162,12 +170,22 @@ export default function Encomendas({ encomendas, onUpdateEncomenda, onDeleteEnco
                 </div>
 
                 {/* Product Info */}
-                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-1">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Produto Encomendado</span>
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Produto Encomendado</span>
+                    <span className="text-[10px] font-extrabold bg-gold-100 text-gold-800 px-2 py-0.5 rounded-md">
+                      Qtd: {enc.quantity || 1}
+                    </span>
+                  </div>
                   <p className="text-xs font-bold text-gray-800">{enc.productName}</p>
-                  {enc.productPrice && (
-                    <p className="text-xs font-black text-emerald-600">R$ {enc.productPrice.toFixed(2)}</p>
-                  )}
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-200/50">
+                    {enc.productPrice && (
+                      <p className="text-xs font-black text-emerald-600">R$ {enc.productPrice.toFixed(2)} (Unit.)</p>
+                    )}
+                    <p className="text-[11px] font-semibold text-gray-600">
+                      Pgto ao chegar: <strong className="text-gold-700">{enc.paymentMethodOnArrival || 'Pix'}</strong>
+                    </p>
+                  </div>
                 </div>
 
                 {/* Expected arrival date */}
@@ -261,6 +279,32 @@ export default function Encomendas({ encomendas, onUpdateEncomenda, onDeleteEnco
                     value={editingEncomenda.productName}
                     className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-600 font-semibold"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700 uppercase">Quantidade</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={quantityInput}
+                      onChange={(e) => setQuantityInput(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900 font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700 uppercase">Pgto ao Chegar</label>
+                    <select
+                      value={paymentMethodInput}
+                      onChange={(e) => setPaymentMethodInput(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 text-gray-900 font-semibold"
+                    >
+                      <option value="Pix">Pix</option>
+                      <option value="Dinheiro">Dinheiro</option>
+                      <option value="Cartão">Cartão</option>
+                      <option value="Fiado">Fiado</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
