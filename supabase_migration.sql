@@ -1,5 +1,5 @@
-ALTER TABLE products ADD COLUMN featured BOOLEAN DEFAULT FALSE;
-ALTER TABLE products ADD COLUMN original_price NUMERIC;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS original_price NUMERIC;
 
 -- Tabela de Encomendas para pedidos feitos pelo catálogo online
 CREATE TABLE IF NOT EXISTS encomendas (
@@ -19,4 +19,14 @@ CREATE TABLE IF NOT EXISTS encomendas (
 
 ALTER TABLE encomendas ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
 ALTER TABLE encomendas ADD COLUMN IF NOT EXISTS payment_method_on_arrival TEXT;
+
+-- Habilitar e configurar políticas RLS para permitir inserção pública (catálogo)
+ALTER TABLE encomendas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir todas as operações em encomendas" ON encomendas;
+CREATE POLICY "Permitir todas as operações em encomendas" ON encomendas FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir todas as operações em customers" ON customers;
+CREATE POLICY "Permitir todas as operações em customers" ON customers FOR ALL USING (true) WITH CHECK (true);
 
