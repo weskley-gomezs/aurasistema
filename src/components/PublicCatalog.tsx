@@ -18,14 +18,20 @@ interface HeroSlide {
 
 const HERO_SLIDES: HeroSlide[] = [
   {
+    desktop: 'https://i.imgur.com/WzfV5HP.png', // Using the generic banner for desktop
+    mobile: 'https://i.imgur.com/sgGFXZB.png',
+    alt: 'Malbec Eau De Parfum',
+    linkMessage: 'Olá! ✨ Tenho interesse no *Malbec Eau De Parfum* (R$ 299,90) que vi no seu catálogo online da Aura Dourada! Gostaria de verificar informações e como faço para encomendar! 🎁🛍️'
+  },
+  {
     desktop: 'https://i.imgur.com/WzfV5HP.png',
     mobile: 'https://i.imgur.com/lfJwldz.png',
-    alt: 'Banner Aura Dourada Slide 1'
+    alt: 'Banner Aura Dourada Slide 2'
   },
   {
     desktop: 'https://i.imgur.com/H0OIeiE.png',
     mobile: 'https://i.imgur.com/q0Ak3CE.png',
-    alt: 'Kit Natura Homem Identidade Slide 2',
+    alt: 'Kit Natura Homem Identidade Slide 3',
     linkMessage: 'Olá! ✨ Tenho interesse no *Kit Natura Homem Identidade* (R$ 299,00) que vi no seu catálogo online da Aura Dourada! Gostaria de verificar informações e como faço para encomendar! 🎁🛍️'
   }
 ];
